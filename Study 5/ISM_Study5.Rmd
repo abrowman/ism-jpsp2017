@@ -1,0 +1,244 @@
+---
+title: "Study 5"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: default
+---
+
+## (1) Description of Data
+
+The posted data for this study consists of 1 compiled, deidentified data file.
+
+```{r include=FALSE}
+options(width=100)
+
+library(RCurl)
+library(plyr)
+library(psych)
+library(ggplot2)
+library(pequod)
+library(data.table)
+library(rtf)
+library(lsr)
+library(nlme)
+library(pwr)
+
+## DATA PREPARATION ##
+csv <- getURL("https://raw.githubusercontent.com/abrowman/ism-jpsp2017/master/Study%205/ISM_Study5.csv")
+mydata <- read.csv(textConnection(csv))
+
+# calculate failed attention checks
+dirchecks <- is.na(mydata$dircheck1) + is.na(mydata$dirchecki.1.) + is.na(mydata$dirchecki.2.) + is.na(mydata$dirchecki.3.) + is.na(mydata$dirchecki.4.) + is.na(mydata$dirchecki.5.) + is.na(mydata$dirchecki.6.) + is.na(mydata$dirchecki.7.) + is.na(mydata$dirchecki.8.) + is.na(mydata$dirchecki.9.) + is.na(mydata$dirchecki.10.) + is.na(mydata$dirchecko.1.) + is.na(mydata$dirchecko.2.) + is.na(mydata$dirchecko.3.) + is.na(mydata$dirchecko.4.) + is.na(mydata$dirchecko.5.) + is.na(mydata$dirchecko.6.) + is.na(mydata$dirchecko.7.) + is.na(mydata$dirchecko.8.) + is.na(mydata$dirchecko.9.) + is.na(mydata$dirchecko.10.)
+```
+
+* There were `r nrow(subset(mydata, dirchecks<21))` participants who failed at least 1 attention check. Their data was removed before conducting the analyses.
+
+```{r include=FALSE}
+mydata <- subset(mydata, dirchecks==21) # remove those who failed direction checks
+
+# score ideal SASRFs
+mydata$rf1proi <- (mydata$rfpro2i.1.+mydata$rfpro3i.1.+mydata$rfpro4i.1.+mydata$rfpro5i.1.)/4
+mydata$rf1prei <- (mydata$rfpre1i.1.+mydata$rfpre2i.1.+mydata$rfpre3i.1.+mydata$rfpre5i.1.)/4
+mydata$rf1i <- mydata$rf1proi-mydata$rf1prei
+
+mydata$rf2proi <- (mydata$rfpro2i.2.+mydata$rfpro3i.2.+mydata$rfpro4i.2.+mydata$rfpro5i.2.)/4
+mydata$rf2prei <- (mydata$rfpre1i.2.+mydata$rfpre2i.2.+mydata$rfpre3i.2.+mydata$rfpre5i.2.)/4
+mydata$rf2i <- mydata$rf2proi-mydata$rf2prei
+
+mydata$rf3proi <- (mydata$rfpro2i.3.+mydata$rfpro3i.3.+mydata$rfpro4i.3.+mydata$rfpro5i.3.)/4
+mydata$rf3prei <- (mydata$rfpre1i.3.+mydata$rfpre2i.3.+mydata$rfpre3i.3.+mydata$rfpre5i.3.)/4
+mydata$rf3i <- mydata$rf3proi-mydata$rf3prei
+
+mydata$rf4proi <- (mydata$rfpro2i.4.+mydata$rfpro3i.4.+mydata$rfpro4i.4.+mydata$rfpro5i.4.)/4
+mydata$rf4prei <- (mydata$rfpre1i.4.+mydata$rfpre2i.4.+mydata$rfpre3i.4.+mydata$rfpre5i.4.)/4
+mydata$rf4i <- mydata$rf4proi-mydata$rf4prei
+
+mydata$rf5proi <- (mydata$rfpro2i.5.+mydata$rfpro3i.5.+mydata$rfpro4i.5.+mydata$rfpro5i.5.)/4
+mydata$rf5prei <- (mydata$rfpre1i.5.+mydata$rfpre2i.5.+mydata$rfpre3i.5.+mydata$rfpre5i.5.)/4
+mydata$rf5i <- mydata$rf5proi-mydata$rf5prei
+
+mydata$rf6proi <- (mydata$rfpro2i.6.+mydata$rfpro3i.6.+mydata$rfpro4i.6.+mydata$rfpro5i.6.)/4
+mydata$rf6prei <- (mydata$rfpre1i.6.+mydata$rfpre2i.6.+mydata$rfpre3i.6.+mydata$rfpre5i.6.)/4
+mydata$rf6i <- mydata$rf6proi-mydata$rf6prei
+
+mydata$rf7proi <- (mydata$rfpro2i.7.+mydata$rfpro3i.7.+mydata$rfpro4i.7.+mydata$rfpro5i.7.)/4
+mydata$rf7prei <- (mydata$rfpre1i.7.+mydata$rfpre2i.7.+mydata$rfpre3i.7.+mydata$rfpre5i.7.)/4
+mydata$rf7i <- mydata$rf7proi-mydata$rf7prei
+
+mydata$rf8proi <- (mydata$rfpro2i.8.+mydata$rfpro3i.8.+mydata$rfpro4i.8.+mydata$rfpro5i.8.)/4
+mydata$rf8prei <- (mydata$rfpre1i.8.+mydata$rfpre2i.8.+mydata$rfpre3i.8.+mydata$rfpre5i.8.)/4
+mydata$rf8i <- mydata$rf8proi-mydata$rf8prei
+
+mydata$rf9proi <- (mydata$rfpro2i.9.+mydata$rfpro3i.9.+mydata$rfpro4i.9.+mydata$rfpro5i.9.)/4
+mydata$rf9prei <- (mydata$rfpre1i.9.+mydata$rfpre2i.9.+mydata$rfpre3i.9.+mydata$rfpre5i.9.)/4
+mydata$rf9i <- mydata$rf9proi-mydata$rf9prei
+
+mydata$rf10proi <- (mydata$rfpro2i.10.+mydata$rfpro3i.10.+mydata$rfpro4i.10.+mydata$rfpro5i.10.)/4
+mydata$rf10prei <- (mydata$rfpre1i.10.+mydata$rfpre2i.10.+mydata$rfpre3i.10.+mydata$rfpre5i.10.)/4
+mydata$rf10i <- mydata$rf10proi-mydata$rf10prei
+
+# score ought SASRFs
+mydata$rf1proo <- (mydata$rfpro2o.1.+mydata$rfpro3o.1.+mydata$rfpro4o.1.+mydata$rfpro5o.1.)/4
+mydata$rf1preo <- (mydata$rfpre1o.1.+mydata$rfpre2o.1.+mydata$rfpre3o.1.+mydata$rfpre5o.1.)/4
+mydata$rf1o <- mydata$rf1proo-mydata$rf1preo
+
+mydata$rf2proo <- (mydata$rfpro2o.2.+mydata$rfpro3o.2.+mydata$rfpro4o.2.+mydata$rfpro5o.2.)/4
+mydata$rf2preo <- (mydata$rfpre1o.2.+mydata$rfpre2o.2.+mydata$rfpre3o.2.+mydata$rfpre5o.2.)/4
+mydata$rf2o <- mydata$rf2proo-mydata$rf2preo
+
+mydata$rf3proo <- (mydata$rfpro2o.3.+mydata$rfpro3o.3.+mydata$rfpro4o.3.+mydata$rfpro5o.3.)/4
+mydata$rf3preo <- (mydata$rfpre1o.3.+mydata$rfpre2o.3.+mydata$rfpre3o.3.+mydata$rfpre5o.3.)/4
+mydata$rf3o <- mydata$rf3proo-mydata$rf3preo
+
+mydata$rf4proo <- (mydata$rfpro2o.4.+mydata$rfpro3o.4.+mydata$rfpro4o.4.+mydata$rfpro5o.4.)/4
+mydata$rf4preo <- (mydata$rfpre1o.4.+mydata$rfpre2o.4.+mydata$rfpre3o.4.+mydata$rfpre5o.4.)/4
+mydata$rf4o <- mydata$rf4proo-mydata$rf4preo
+
+mydata$rf5proo <- (mydata$rfpro2o.5.+mydata$rfpro3o.5.+mydata$rfpro4o.5.+mydata$rfpro5o.5.)/4
+mydata$rf5preo <- (mydata$rfpre1o.5.+mydata$rfpre2o.5.+mydata$rfpre3o.5.+mydata$rfpre5o.5.)/4
+mydata$rf5o <- mydata$rf5proo-mydata$rf5preo
+
+mydata$rf6proo <- (mydata$rfpro2o.6.+mydata$rfpro3o.6.+mydata$rfpro4o.6.+mydata$rfpro5o.6.)/4
+mydata$rf6preo <- (mydata$rfpre1o.6.+mydata$rfpre2o.6.+mydata$rfpre3o.6.+mydata$rfpre5o.6.)/4
+mydata$rf6o <- mydata$rf6proo-mydata$rf6preo
+
+mydata$rf7proo <- (mydata$rfpro2o.7.+mydata$rfpro3o.7.+mydata$rfpro4o.7.+mydata$rfpro5o.7.)/4
+mydata$rf7preo <- (mydata$rfpre1o.7.+mydata$rfpre2o.7.+mydata$rfpre3o.7.+mydata$rfpre5o.7.)/4
+mydata$rf7o <- mydata$rf7proo-mydata$rf7preo
+
+mydata$rf8proo <- (mydata$rfpro2o.8.+mydata$rfpro3o.8.+mydata$rfpro4o.8.+mydata$rfpro5o.8.)/4
+mydata$rf8preo <- (mydata$rfpre1o.8.+mydata$rfpre2o.8.+mydata$rfpre3o.8.+mydata$rfpre5o.8.)/4
+mydata$rf8o <- mydata$rf8proo-mydata$rf8preo
+
+mydata$rf9proo <- (mydata$rfpro2o.9.+mydata$rfpro3o.9.+mydata$rfpro4o.9.+mydata$rfpro5o.9.)/4
+mydata$rf9preo <- (mydata$rfpre1o.9.+mydata$rfpre2o.9.+mydata$rfpre3o.9.+mydata$rfpre5o.9.)/4
+mydata$rf9o <- mydata$rf9proo-mydata$rf9preo
+
+mydata$rf10proo <- (mydata$rfpro2o.10.+mydata$rfpro3o.10.+mydata$rfpro4o.10.+mydata$rfpro5o.10.)/4
+mydata$rf10preo <- (mydata$rfpre1o.10.+mydata$rfpre2o.10.+mydata$rfpre3o.10.+mydata$rfpre5o.10.)/4
+mydata$rf10o <- mydata$rf10proo-mydata$rf10preo
+
+# calculate rf average scores
+mydata$rfi <- NA
+mydata$rfipro <- NA
+mydata$rfipre <- NA
+mydata$rfo <- NA
+mydata$rfopro <- NA
+mydata$rfopre <- NA
+for (j in 1:nrow(mydata)) {
+  mydata$rfi[j] <- mean(c(mydata$rf1i[j],mydata$rf2i[j],mydata$rf3i[j],mydata$rf4i[j],mydata$rf5i[j],mydata$rf6i[j],mydata$rf7i[j],mydata$rf8i[j],mydata$rf9i[j],mydata$rf10i[j]), na.rm=T)
+  mydata$rfipro[j] <- mean(c(mydata$rf1proi[j],mydata$rf2proi[j],mydata$rf3proi[j],mydata$rf4proi[j],mydata$rf5proi[j],mydata$rf6proi[j],mydata$rf7proi[j],mydata$rf8proi[j],mydata$rf9proi[j],mydata$rf10proi[j]), na.rm=T)
+  mydata$rfipre[j] <- mean(c(mydata$rf1prei[j],mydata$rf2prei[j],mydata$rf3prei[j],mydata$rf4prei[j],mydata$rf5prei[j],mydata$rf6prei[j],mydata$rf7prei[j],mydata$rf8prei[j],mydata$rf9prei[j],mydata$rf10prei[j]), na.rm=T)
+  mydata$rfo[j] <- mean(c(mydata$rf1o[j],mydata$rf2o[j],mydata$rf3o[j],mydata$rf4o[j],mydata$rf5o[j],mydata$rf6o[j],mydata$rf7o[j],mydata$rf8o[j],mydata$rf9o[j],mydata$rf10o[j]), na.rm=T)
+  mydata$rfopro[j] <- mean(c(mydata$rf1proo[j],mydata$rf2proo[j],mydata$rf3proo[j],mydata$rf4proo[j],mydata$rf5proo[j],mydata$rf6proo[j],mydata$rf7proo[j],mydata$rf8proo[j],mydata$rf9proo[j],mydata$rf10proo[j]), na.rm=T)
+  mydata$rfopre[j] <- mean(c(mydata$rf1preo[j],mydata$rf2preo[j],mydata$rf3preo[j],mydata$rf4preo[j],mydata$rf5preo[j],mydata$rf6preo[j],mydata$rf7preo[j],mydata$rf8preo[j],mydata$rf9preo[j],mydata$rf10preo[j]), na.rm=T)
+}
+```
+
+* There were `r nrow(subset(mydata, is.na(rfo) | is.na(rfi)))` participants who did not fully complete the dependent measures (i.e., they did not complete a SASRF measure for each ideal- or ought-relevant self they nominated).  Their data was removed before conducting the analyses.
+
+```{r include=FALSE}
+# remove Ps who did not complete the DVs
+mydata <- subset(mydata, !is.na(rfo) & !is.na(rfi))
+
+# calculate actual-ideal and actual-ought self-discrepancies
+mydata$ai <- mydata$ideal.i-mydata$actual.i
+mydata$ao <- mydata$ought.o-mydata$actual.o
+```
+
+* Because ideal- and ought-relevant motivation depends on the presence of actual-ideal and actual-ought self-discrepancies, we screened for participants who did not report such discrepancies (i.e., for whom their ideal-minus-actual or ought-minus-actual scores were 0 or less). There were `r nrow(subset(mydata, mydata$ai<=0 | mydata$ao<=0))` such participants.  Their data was removed before conducting the analyses.
+
+```{r include=FALSE}
+mydata <- subset(mydata, mydata$ai>0 & mydata$ao>0)
+
+mydata$ideal.count <- rowSums(subset(mydata, select=c(idlaspect.1.:idlaspect.10.))!="")
+mydata$ought.count <- rowSums(subset(mydata, select=c(ougaspect.1.:ougaspect.10.))!="")
+attach(mydata)
+```
+
+
+## (2) Descriptive Statistics
+
+**Total *N* who completed the whole study:** `r nrow(mydata)`
+
+**Sensitivity analysis:** This sample provided a statistical power of .80 to detect effects of Cohen's *D* >= `r round(pwr.t.test(n=nrow(mydata), sig.level=.05, power=.80, type = c("paired"))$d, digits = 3)`.
+
+***M*~age~ (*SD*):** `r round(mean(age, na.rm=T), digits=2)` (`r round(sd(age, na.rm=T), digits=2)`)
+
+**Percentage by gender:**
+```{r echo=FALSE}
+gender <- factor(ifelse(gender==1, "male", ifelse(gender==2, "female", NA)))
+table(gender, useNA="always")
+```
+
+***M*~ideal-self-aspects-reported~ (*SD*):** `r round(mean(ideal.count, na.rm=T), digits=2)` (`r round(sd(ideal.count, na.rm=T), digits=2)`)
+
+***M*~ought-self-aspects-reported~ (*SD*):** `r round(mean(ought.count, na.rm=T), digits=2)` (`r round(sd(ought.count, na.rm=T), digits=2)`)
+
+
+## (3) Primary Analysis
+
+### Test of differences between ideal- and ought-related SASRFs
+```{r echo=FALSE}
+t.test(mydata$rfi, mydata$rfo, paired=TRUE)
+round(data.frame(describe(data.frame(mydata$rfi, mydata$rfo))[2], describe(data.frame(mydata$rfi, mydata$rfo))[3], describe(data.frame(mydata$rfi, mydata$rfo))[4]), digits=2)
+```
+
+**Cohen's *D*:** `r round(cohensD(mydata$rfi, mydata$rfo, method="paired"), digits=2)`
+
+
+## (4) Multilevel Regression Analyses
+
+### Repeated-measures ANCOVA controlling for the number of self-aspects included in the average and the average discrepancy scores (Step 1)
+
+**Full results:**
+```{r echo=FALSE}
+# repeated measures ANCOVA controlling for the number of self-aspects
+detach(mydata)
+longdata <- mydata
+setnames(longdata, old = c("rfi","rfo","ai","ao"), new = c("ideal.rf","ought.rf","ideal.disc","ought.disc"))
+longdata <- reshape(longdata, direction = "long", 
+  varying = c("ideal.count", "ideal.disc", "ideal.rf", "ought.count", "ought.disc", "ought.rf"),
+  timevar = "var",
+  times = c("ideal", "ought"),
+  v.names = c("count", "disc", "rf"),
+  idvar="id")
+
+longdata$var <- factor(longdata$var)
+contrasts(longdata$var)
+summary(multi1 <- lme(rf ~ var + count + disc, random = ~1|id, data=longdata))
+```
+
+**95% CIs:**
+```{r echo=FALSE}
+round(intervals(multi1, level = 0.95)$fixed, digits=2)
+```
+
+### Repeated-measures analysis of whether the number of self-aspects is a moderator (Step 2)
+
+**Full results:**
+```{r echo=FALSE}
+contrasts(longdata$var)
+summary(multi2 <- lme(rf ~ var * count, random = ~1|id, data=longdata))
+```
+
+**95% CIs:**
+```{r echo=FALSE}
+round(intervals(multi2, level = 0.95)$fixed, digits=2)
+```
+
+### Repeated-measures analysis of whether the average discrepancy scores are moderators (Step 3)
+
+**Full results:**
+```{r echo=FALSE}
+contrasts(longdata$var)
+summary(multi3 <- lme(rf ~ var * disc, random = ~1|id, data=longdata))
+```
+
+**95% CIs:**
+```{r echo=FALSE}
+round(intervals(multi3, level = 0.95)$fixed, digits=2)
+```

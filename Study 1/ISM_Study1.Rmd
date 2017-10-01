@@ -1,0 +1,245 @@
+---
+title: "Study 1"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: default
+---
+
+## (1) Description of Data
+
+The posted data for this study consists of 1 compiled, deidentified data file. Two (2) responses were excluded because it was not possible to accurately match their separate questionnaire sheets, as described in the main text of the article.
+
+```{r include=FALSE}
+options(width=100)
+
+library(RCurl)
+library(plyr)
+library(psych)
+library(data.table)
+library(rtf)
+library(pwr)
+
+## DATA PREPARATION ##
+csv <- getURL("https://raw.githubusercontent.com/abrowman/ism-jpsp2017/master/Study%201/ISM_Study1.csv")
+mydata <- read.csv(textConnection(csv))
+
+mydata$rfqpro2 <- as.numeric(gsub(7, NA, mydata$rfqpro2))
+mydata$rfqpro2 <- as.numeric(gsub(6, NA, mydata$rfqpro2))
+mydata$rfqpre3 <- as.numeric(gsub(7, NA, mydata$rfqpre3))
+mydata$rfqpre4r <- as.numeric(gsub(6, NA, mydata$rfqpre4r))
+mydata$rfqpre5r <- as.numeric(gsub(6, NA, mydata$rfqpre5r))
+mydata$rfqpro4r <- as.numeric(gsub(22, 2, mydata$rfqpro4r))
+mydata$rfqpro6r <- as.numeric(gsub(6, NA, mydata$rfqpro6r))
+attach(mydata)
+
+# score measures
+rfqpro <- ((6-rfqpro1r)+rfqpro2+rfqpro3+(6-rfqpro4r)+rfqpro5+(6-rfqpro6r))/6
+rfqpre <- ((6-rfqpre1r)+(6-rfqpre2r)+rfqpre3+(6-rfqpre4r)+(6-rfqpre5r))/5
+rfq <- rfqpro-rfqpre
+rfq_c <- scale(rfq,scale=F,center=T)
+
+rfapro <- (RFApro2+RFApro3+RFApro4+RFApro5)/4
+rfapre <- (RFApre1+RFApre2+RFApre3+RFApre5)/4
+rfa <- rfapro-rfapre
+rfa_c <- scale(rfa,scale=F,center=T)
+
+rfhpro <- (RFHpro2+RFHpro3+RFHpro4+RFHpro5)/4
+rfhpre <- (RFHpre1+RFHpre2+RFHpre3+RFHpre5)/4
+rfh <- rfhpro-rfhpre
+rfh_c <- scale(rfh,scale=F,center=T)
+
+rfrpro <- (RFRpro2+RFRpro3+RFRpro4+RFRpro5)/4
+rfrpre <- (RFRpre1+RFRpre2+RFRpre3+RFRpre5)/4
+rfr <- rfrpro-rfrpre
+rfr_c <- scale(rfr,scale=F,center=T)
+
+achieve <- (Mot_Explore+Mot_Knowlege+Mot_Learn+Mot_Independent+Mot_Understand)/5
+respons <- (Mot_GiveBack+Mot_Financial+Mot_Help+Mot_Honor+Mot_Rolemodel)/5
+```
+
+
+## (2) Descriptive Statistics
+
+**Total *N*:**
+
+* **Whole sample:** `r nrow(mydata)`  
+* ***N* who completed Questionnaire A:** `r sum(questionnaire1, na.rm=T)`  
+* ***N* who completed Questionnaire B:** `r sum(questionnaire2, na.rm=T)`
+
+**Sensitivity analyses:** These completion rates provided a statistical power of .80 to detect effects of |*r*| >= `r round(pwr.r.test(n = sum(questionnaire1, na.rm=T), sig.level = .05, power = .80)$r, digits = 2)` and `r round(pwr.r.test(n = sum(questionnaire2, na.rm=T), sig.level = .05, power = .80)$r, digits = 2)`.
+
+**Percentage by gender:**
+```{r echo=FALSE}
+gender <- factor(ifelse(Gender==1, "male", ifelse(Gender==2, "female", NA)))
+table(gender, useNA="always")
+```
+
+***M*s and *SD*s:**
+```{r echo=FALSE}
+describe(data.frame(Age, rfa, rfapro, rfapre, rfh, rfhpro, rfhpre, rfr, rfrpro, rfrpre, rfq, rfqpro, rfqpre, achieve, respons))[c(2,3,4)]
+```
+
+**Alphas:**
+
+* **Identity-specific motivation-academics promotion:** `r round(alpha(data.frame(RFApro2,RFApro3,RFApro4,RFApro5))$total$raw_alpha, digits=2)`  
+* **Identity-specific motivation-academics prevention:** `r round(alpha(data.frame(RFApre1,RFApre2,RFApre3,RFApre5))$total$raw_alpha, digits=2)`  
+* **Identity-specific motivation-health promotion:** `r round(alpha(data.frame(RFHpro2,RFHpro3,RFHpro4,RFHpro5))$total$raw_alpha, digits=2)`  
+* **Identity-specific motivation-health prevention:** `r round(alpha(data.frame(RFHpre1,RFHpre2,RFHpre3,RFHpre5))$total$raw_alpha, digits=2)`  
+* **Identity-specific motivation-relationship promotion:** `r round(alpha(data.frame(RFRpro2,RFRpro3,RFRpro4,RFRpro5))$total$raw_alpha, digits=2)`  
+* **Identity-specific motivation-relationship prevention:** `r round(alpha(data.frame(RFRpre1,RFRpre2,RFRpre3,RFRpre5))$total$raw_alpha, digits=2)`  
+* **RFQ promotion:** `r round(alpha(data.frame((6-rfqpro1r),rfqpro2,rfqpro3,(6-rfqpro4r),rfqpro5,(6-rfqpro6r)))$total$raw_alpha, digits=2)`  
+* **RFQ prevention:** `r round(alpha(data.frame((6-rfqpre1r),(6-rfqpre2r),rfqpre3,(6-rfqpre4r),(6-rfqpre5r)))$total$raw_alpha, digits=2)`  
+* **Achievement motives:** `r round(alpha(data.frame(Mot_Explore,Mot_Knowlege,Mot_Learn,Mot_Independent,Mot_Understand))$total$raw_alpha, digits=2)`  
+* **Responsibility motives:** `r round(alpha(data.frame(Mot_GiveBack,Mot_Financial,Mot_Help,Mot_Honor,Mot_Rolemodel))$total$raw_alpha, digits=2)`
+
+
+## (3) Zero-Order and Disattenuated Correlations
+
+**Pairwise correlations:**
+```{r echo=FALSE}
+corlist <- data.frame(achieve,respons,rfa,rfh,rfr,rfq)
+cortable1 <- data.frame(round(corr.test(as.matrix(corlist))$ci[10:15,1:3], digits=2), round(corr.test(as.matrix(corlist))$ci[10:15,4], digits=3), corr.test(as.matrix(corlist))$n[c(16,17,18,23,24,30)]-2)
+colnames(cortable1) <- c("lower","r","upper","p","df")
+cortable1
+```
+
+**Disattenuated correlations (above the horizontal; pairwise below the horizontal, alphas on the horizontal):**
+```{r echo=FALSE}
+a.rfa <- data.frame(RFApro2,RFApro3,RFApro4,RFApro5,RFApre1,RFApre2,RFApre3,RFApre5)
+a.rfr <- data.frame(RFRpro2,RFRpro3,RFRpro4,RFRpro5,RFRpre1,RFRpre2,RFRpre3,RFRpre5)
+a.rfh <- data.frame(RFHpro2,RFHpro3,RFHpro4,RFHpro5,RFHpre1,RFHpre2,RFHpre3,RFHpre5)
+a.rfq <- data.frame((6-rfqpro1r),rfqpro2,rfqpro3,(6-rfqpro4r),rfqpro5,(6-rfqpro6r),(6-rfqpre1r),(6-rfqpre2r),rfqpre3,(6-rfqpre4r),(6-rfqpre5r))
+alpha.rfa <- alpha(a.rfa)
+alpha.rfr <- alpha(a.rfr)
+alpha.rfh <- alpha(a.rfh)
+alpha.rfq <- alpha(a.rfq)
+
+x <- matrix(c(rfa,rfh,rfr,rfq),ncol=4)
+x.cor <- cor(x, use="pairwise.complete.obs")
+colnames(x.cor) <- c("rfa","rfh","rfr","rfq")
+rownames(x.cor) <- c("rfa","rfh","rfr","rfq")
+alpha <- c(alpha.rfa$total$raw_alpha, alpha.rfh$total$raw_alpha, alpha.rfr$total$raw_alpha, alpha.rfq$total$raw_alpha)
+round(correct.cor(x.cor,alpha),2)
+```
+
+
+## (4) Factor Analyses
+
+**Scree plot:**  
+```{r echo=FALSE}
+eigen.data <- data.frame(RFApro2,RFApro3,RFApro4,RFApro5,RFApre1,RFApre2,RFApre3,RFApre5,RFHpro2,RFHpro3,RFHpro4,RFHpro5,RFHpre1,RFHpre2,RFHpre3,RFHpre5,RFRpro2,RFRpro3,RFRpro4,RFRpro5,RFRpre1,RFRpre2,RFRpre3,RFRpre5)
+eigen <- eigen(cor(eigen.data, use="complete.obs")) # calculate eigenvalues
+plot(eigen$values, xlab="Factor number", ylab="Eigenvalue") # plot eigens
+```
+
+**Eigenvalues:**
+```{r echo=FALSE}
+round(eigen$values, digits=2)
+```
+
+**Factor analysis results:**
+```{r echo=FALSE}
+print(factanal(~RFApro2+RFApro3+RFApro4+RFApro5+RFApre1+RFApre2+RFApre3+RFApre5+RFHpro2+RFHpro3+RFHpro4+RFHpro5+RFHpre1+RFHpre2+RFHpre3+RFHpre5+RFRpro2+RFRpro3+RFRpro4+RFRpro5+RFRpre1+RFRpre2+RFRpre3+RFRpre5, factors=3)$loadings, cutoff=0)
+```
+
+
+## (5) Main Analyses
+
+### Correlations between RFs and academic motives
+
+**Correlations:**
+```{r echo=FALSE}
+cortable2 <- data.frame(round(corr.test(as.matrix(corlist))$ci[2:9,1:3], digits=2), round(corr.test(as.matrix(corlist))$ci[2:9,4], digits=3), corr.test(as.matrix(corlist))$n[c(3,4,5,6,9,10,11,12)]-2)
+colnames(cortable2) <- c("lower","r","upper","p","df")
+cortable2
+```
+
+
+### Regressing on academic motives on all RFs measures
+
+**Estimates and CIs for achievement motives: identity-specific motivations:**
+```{r echo=FALSE}
+summary(achieve.regress.ism <- lm(achieve ~ rfa_c + rfh_c + rfr_c))
+round(confint(achieve.regress.ism, level = 0.95), digits=2)
+```
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-student term:** `r round((summary(achieve.regress.ism)$r.squared-summary(lm(achieve ~ rfh_c + rfr_c))$r.squared)/(1-summary(achieve.regress.ism)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-physical term:** `r round((summary(achieve.regress.ism)$r.squared-summary(lm(achieve ~ rfa_c + rfr_c))$r.squared)/(1-summary(achieve.regress.ism)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-relational term:** `r round((summary(achieve.regress.ism)$r.squared-summary(lm(achieve ~ rfa_c + rfh_c))$r.squared)/(1-summary(achieve.regress.ism)$r.squared), digits=3)`  
+
+
+**Estimates and CIs for achievement motives: identity-specific motivation-student & RFQ:**
+```{r echo=FALSE}
+summary(achieve.regress.rfq <- lm(achieve ~ rfa_c + rfq_c))
+round(confint(achieve.regress.rfq, level = 0.95), digits=2)
+```
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-student term:** `r round((summary(achieve.regress.rfq)$r.squared-summary(lm(achieve ~ rfq_c))$r.squared)/(1-summary(achieve.regress.rfq)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for RFQ term:** `r round((summary(achieve.regress.rfq)$r.squared-summary(lm(achieve ~ rfa_c))$r.squared)/(1-summary(achieve.regress.rfq)$r.squared), digits=3)`  
+
+
+**Estimates and CIs for responsibility motives: Identity-specific motivations:**
+```{r echo=FALSE}
+summary(respons.regress.ism <- lm(respons ~ rfa_c + rfh_c + rfr_c))
+round(confint(respons.regress.ism, level = 0.95), digits=2)
+```
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-student term:** `r round((summary(respons.regress.ism)$r.squared-summary(lm(respons ~ rfh_c + rfr_c))$r.squared)/(1-summary(respons.regress.ism)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-physical term:** `r round((summary(respons.regress.ism)$r.squared-summary(lm(respons ~ rfa_c + rfr_c))$r.squared)/(1-summary(respons.regress.ism)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-relational term:** `r round((summary(respons.regress.ism)$r.squared-summary(lm(respons ~ rfa_c + rfh_c))$r.squared)/(1-summary(respons.regress.ism)$r.squared), digits=3)`  
+
+
+**Estimates and CIs for responsibility motives: identity-specific mortivation-student & RFQ:**
+```{r echo=FALSE}
+summary(respons.regress.rfq <- lm(respons ~ rfa_c + rfq_c))
+round(confint(respons.regress.rfq, level = 0.95), digits=2)
+```
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-student term:** `r round((summary(respons.regress.rfq)$r.squared-summary(lm(respons ~ rfq_c))$r.squared)/(1-summary(respons.regress.rfq)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for RFQ term:** `r round((summary(respons.regress.rfq)$r.squared-summary(lm(respons ~ rfa_c))$r.squared)/(1-summary(respons.regress.rfq)$r.squared), digits=3)`  
+
+
+```{r include=FALSE, warning=FALSE}
+## Create and export tables ##
+regtable <- function(modellist, docname) {
+  sections <- list(NA)
+  colnam <- vector("list", length(modellist)*4)
+  for (i in 1:length(modellist)) {
+    assign(paste("b", i, sep = ""), round(coef(summary(modellist[[i]])), digits=3))
+    assign(paste("ci", i, sep = ""), paste(round(get(paste("b", i, sep=""))[, 1], digits=2), " [", round(confint(modellist[[i]], level = 0.95)[,1], digits=2), ", ", round(confint(modellist[[i]], level = 0.95)[,2], digits=2), "]", sep = ""))
+    assign(paste("t", i, sep = ""), round(summary(modellist[[i]])$coefficients[,3], digits=2))
+    assign(paste("df", i, sep = ""), rep(summary(modellist[[i]])$df[2],each=1+length(labels(modellist[[1]]))))
+    assign(paste("p", i, sep = ""), round(summary(modellist[[i]])$coefficients[,4], digits=3))
+    assign(paste("section", i, sep = ""), rbind(cbind(get(paste("ci", i, sep = "")), get(paste("t", i, sep = "")), get(paste("df", i, sep = "")), get(paste("p", i, sep = "")))))
+    sections[[i]] <- get(paste("section", i, sep = ""))
+    colnam[1+(4*(i-1))] <- paste(all.vars(summary(modellist[[i]])$call)[1], ": b (95% CIs)", sep="")
+    colnam[2+(4*(i-1))] <- "t"
+    colnam[3+(4*(i-1))] <- "df"
+    colnam[4+(4*(i-1))] <- "p"
+  }
+  complete <- do.call(cbind, sections)
+  colnames(complete) <- colnam
+  rnames <- c("Intercept")
+  for (j in 1:length(labels(modellist[[1]]))) {
+    rnames <- append(rnames, labels(modellist[[1]])[j])
+  }
+  rownames(complete) <- rnames
+  complete <- complete[-1,]
+  rtffile <- RTF(file=paste(docname, ".doc", sep=""), width=11, height=8.5, font.size=8)  # this can be an .rtf or a .doc
+  addTable(rtffile, cbind(rownames(complete), complete), col.justify="C", header.col.justify="C")
+  done(rtffile)
+}
+models1 <- list(achieve.regress.ism, respons.regress.ism)
+regtable(models1, "Table 2a")
+models2 <- list(achieve.regress.rfq, respons.regress.rfq)
+regtable(models2, "Table 2b")
+```

@@ -1,0 +1,443 @@
+---
+title: "Study 2"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: default
+---
+
+## (1) Description of Data
+
+The posted data for this study consists of 1 compiled, deidentified data file. The lexical decision task data was cleaned and scored in Excel according to procedures from Lisjak et al., 2012, Study 2:
+
+* Total trials before cleaning: 7040
+* Total error trials removed: 341 (`r round((341/7040)*100, digits=2)`%)
+* Total extreme responses (>3500ms) removed: 4 (`r round((4/7040)*100, digits=2)`%)
+* Total outliers removed (after removing errors and extreme responses): 126 (`r round((126/7040)*100, digits=2)`%)\
+\
+
+```{r include=FALSE}
+options(width=100)
+
+library(RCurl)
+library(plyr)
+library(ggplot2)
+library(pequod)
+library(psych)
+library(data.table)
+library(rtf)
+library(pwr)
+
+## DATA PREPARATION ##
+csv <- getURL("https://raw.githubusercontent.com/abrowman/ism-jpsp2017/master/Study%202/ISM_Study2.csv")
+mydata <- read.csv(textConnection(csv))
+
+mydata$cond_c <- scale(ifelse(mydata$cond=="student", 1, ifelse(mydata$cond=="friend", 2, NA)), scale=F, center=T)
+options(contrasts=c("contr.sum","contr.poly"))
+attach(mydata)
+
+# score measures
+rfs.pro <- (RFSpro2+RFSpro3+RFSpro4+RFSpro5)/4
+rfs.pre <- (RFSpre1+RFSpre2+RFSpre3+RFSpre5)/4
+rfs <- rfs.pro-rfs.pre
+rfs_c <- scale(rfs,scale=F,center=T)
+
+rfb.pro <- (RFBpro2+RFBpro3+RFBpro4+RFBpro5)/4
+rfb.pre <- (RFBpre1+RFBpre2+RFBpre3+RFBpre5)/4
+rfb <- rfb.pro-rfb.pre
+rfb_c <- scale(rfb,scale=F,center=T)
+
+rfq.pro <- ((6-RFQpro1r)+RFQpro2+RFQpro3+(6-RFQpro4r)+RFQpro5+(6-RFQpro6r))/6
+rfq.pre <- ((6-RFQpre1r)+(6-RFQpre2r)+RFQpre3+(6-RFQpre4r)+(6-RFQpre5r))/5
+rfq <- rfq.pro-rfq.pre
+rfq_c <- scale(rfq,scale=F,center=T)
+
+rfprimed <- ifelse(cond=="student", rfs, ifelse(cond=="friend", rfb, NA))
+rfnonprimed <- ifelse(cond=="student", rfb, ifelse(cond=="friend", rfs, NA))
+
+promolog_c <- scale(promolog,scale=F,center=T)
+prevlog_c <- scale(prevlog,scale=F,center=T)
+promo_c <- scale(promo,scale=F,center=T)
+prev_c <- scale(prev,scale=F,center=T)
+rfprimed_c <- scale(rfprimed,scale=F,center=T)
+rfnonprimed_c <- scale(rfnonprimed,scale=F,center=T)
+```
+
+
+## (2) Descriptive Statistics
+
+**Total *N*:** `r nrow(mydata)`
+
+**Sensitivity analysis:** This sample provided a statistical power of .80 to detect effects of *f*^2^ >= `r round(pwr.f2.test(u = 1, v = nrow(mydata)-2, sig.level = .05, power = .80)$f2, digits = 3)`.
+
+**Percentage by gender:**
+```{r echo=FALSE}
+gender <- factor(ifelse(Gender==1, "male", ifelse(Gender==2, "female", NA)))
+table(gender, useNA="always")
+```
+
+***N* in each condition:**
+```{r echo=FALSE}
+table(cond, useNA="always")
+```
+
+***M*s and *SD*s:**
+```{r echo=FALSE}
+describe(data.frame(Age,rfs,rfs.pro,rfs.pre,rfb,rfb.pro,rfb.pre,rfq,rfq.pro,rfq.pre))[c(2,3,4)]
+```
+
+**Alphas:**  
+
+* **Identity-specific motivation-academics promotion:** `r round(alpha(data.frame(RFSpro2,RFSpro3,RFSpro4,RFSpro5))$total$raw_alpha, digits=2)`
+* **Identity-specific motivation-academics prevention:** `r round(alpha(data.frame(RFSpre1,RFSpre2,RFSpre3,RFSpre5))$total$raw_alpha, digits=2)`
+* **Identity-specific motivation-friend promotion:** `r round(alpha(data.frame(RFBpro2,RFBpro3,RFBpro4,RFBpro5))$total$raw_alpha, digits=2)`
+* **Identity-specific motivation-friend prevention:** `r round(alpha(data.frame(RFBpre1,RFBpre2,RFBpre3,RFBpre5))$total$raw_alpha, digits=2)`
+* **RFQ promotion:** `r round(alpha(data.frame((6-RFQpro1r),RFQpro2,RFQpro3,(6-RFQpro4r),RFQpro5,(6-RFQpro6r)))$total$raw_alpha, digits=2)`
+* **RFQ prevention:** `r round(alpha(data.frame((6-RFQpre1r),(6-RFQpre2r),RFQpre3,(6-RFQpre4r),(6-RFQpre5r)))$total$raw_alpha, digits=2)`
+
+
+## (3) Correlations
+
+**Correlations:**
+```{r echo=FALSE}
+corlist <- data.frame(rfs,rfb,rfq)
+cortable <- data.frame(round(corr.test(as.matrix(corlist))$ci[,1:3], digits=2), round(corr.test(as.matrix(corlist))$ci[,4], digits=4), corr.test(as.matrix(corlist))$n[c(2,3,6)]-2)
+colnames(cortable) <- c("lower","r","upper","p","df")
+cortable
+```
+
+
+## (4) Random assignment checks
+
+**(a) Unequal variance test, *t*-test, and *M*s and *SD*s for: identity-specific motivation-student**
+```{r echo=FALSE}
+var.test(rfs~cond)
+t.test(rfs~cond, var.equal=FALSE)
+describeBy(rfs, mydata$cond)
+```
+
+**(b) Unequal variance test, *t*-test, and *M*s and *SD*s for: identity-specific motivation-friend**
+```{r echo=FALSE}
+var.test(rfb~cond)
+t.test(rfb~cond, var.equal=TRUE)
+describeBy(rfb, mydata$cond)
+```
+
+**(c) Unequal variance test, *t*-test, and *M*s and *SD*s for: RFQ**
+```{r echo=FALSE}
+var.test(rfq~cond)
+t.test(rfq~cond, var.equal=TRUE)
+describeBy(rfq, mydata$cond)
+```
+
+
+## (5) Main Analyses
+
+#### Promotion analyses
+
+**Estimates and CIs:**
+```{r echo=FALSE}
+summary(promo.active.regress <- lm(promolog ~ rfprimed_c + rfnonprimed_c + rfq_c + prevlog_c))
+round(confint(promo.active.regress, level = 0.95), digits=2)
+```
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-primed:** `r round((summary(promo.active.regress)$r.squared-summary(lm(promolog ~ rfnonprimed_c + rfq_c + prevlog_c))$r.squared)/(1-summary(promo.active.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-nonprimed:** `r round((summary(promo.active.regress)$r.squared-summary(lm(promolog ~ rfprimed_c + rfq_c + prevlog_c))$r.squared)/(1-summary(promo.active.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for RFQ:** `r round((summary(promo.active.regress)$r.squared-summary(lm(promolog ~ rfprimed_c + rfnonprimed_c + prevlog_c))$r.squared)/(1-summary(promo.active.regress)$r.squared), digits=3)`  
+\  
+
+#### Prevention analyses
+
+**Estimates and CIs:**
+```{r echo=FALSE}
+summary(prev.active.regress <- lm(prevlog ~ rfprimed_c + rfnonprimed_c + rfq_c + promolog_c))
+round(confint(prev.active.regress, level = 0.95), digits=2)
+```
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-primed:** `r round((summary(prev.active.regress)$r.squared-summary(lm(prevlog ~ rfnonprimed_c + rfq_c + promolog_c))$r.squared)/(1-summary(prev.active.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for identity-specific motivation-nonprimed:** `r round((summary(prev.active.regress)$r.squared-summary(lm(prevlog ~ rfprimed_c + rfq_c + promolog_c))$r.squared)/(1-summary(prev.active.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for RFQ:** `r round((summary(prev.active.regress)$r.squared-summary(lm(prevlog ~ rfprimed_c + rfnonprimed_c + promolog_c))$r.squared)/(1-summary(prev.active.regress)$r.squared), digits=3)`
+
+
+## (6) Plots
+
+These plots use non-logged RTs and non-centered values for visualization purposes.
+
+### Promotion plot
+
+```{r echo=FALSE, warning=FALSE}
+promo.plot.regress <- lm(promo ~ rfprimed + rfnonprimed + rfq + prev)
+promo.plot.coefs <- coefficients(promo.plot.regress)
+
+promo.rfprimed.minus1 <- promo.plot.coefs[1] + (promo.plot.coefs[2]*(mean(rfprimed, na.rm=T)-sd(rfprimed, na.rm=T))) + (promo.plot.coefs[3]*(mean(rfnonprimed, na.rm=T))) + (promo.plot.coefs[4]*(mean(rfq, na.rm=T))) + (promo.plot.coefs[5]*(mean(prev, na.rm=T)))
+promo.rfprimed.plus1 <- promo.plot.coefs[1] + (promo.plot.coefs[2]*(mean(rfprimed, na.rm=T)+sd(rfprimed, na.rm=T))) + (promo.plot.coefs[3]*(mean(rfnonprimed, na.rm=T))) + (promo.plot.coefs[4]*(mean(rfq, na.rm=T))) + (promo.plot.coefs[5]*(mean(prev, na.rm=T)))
+
+promo.rfnonprimed.minus1 <- promo.plot.coefs[1] + (promo.plot.coefs[2]*(mean(rfprimed, na.rm=T))) + (promo.plot.coefs[3]*(mean(rfnonprimed, na.rm=T)-sd(rfnonprimed, na.rm=T))) + (promo.plot.coefs[4]*(mean(rfq, na.rm=T))) + (promo.plot.coefs[5]*(mean(prev, na.rm=T)))
+promo.rfnonprimed.plus1 <- promo.plot.coefs[1] + (promo.plot.coefs[2]*(mean(rfprimed, na.rm=T))) + (promo.plot.coefs[3]*(mean(rfnonprimed, na.rm=T)+sd(rfnonprimed, na.rm=T))) + (promo.plot.coefs[4]*(mean(rfq, na.rm=T))) + (promo.plot.coefs[5]*(mean(prev, na.rm=T)))
+
+promo.rfq.minus1 <- promo.plot.coefs[1] + (promo.plot.coefs[2]*(mean(rfprimed, na.rm=T))) + (promo.plot.coefs[3]*(mean(rfnonprimed, na.rm=T))) + (promo.plot.coefs[4]*(mean(rfq, na.rm=T)-sd(rfq, na.rm=T))) + (promo.plot.coefs[5]*(mean(prev, na.rm=T)))
+promo.rfq.plus1 <- promo.plot.coefs[1] + (promo.plot.coefs[2]*(mean(rfprimed, na.rm=T))) + (promo.plot.coefs[3]*(mean(rfnonprimed, na.rm=T))) + (promo.plot.coefs[4]*(mean(rfq, na.rm=T)+sd(rfq, na.rm=T))) + (promo.plot.coefs[5]*(mean(prev, na.rm=T)))
+
+promo.plot.data <- data.frame(c("aRFprimed","aRFprimed","bRFnon-primed","bRFnon-primed","cRFQ","cRFQ"), c(promo.rfprimed.minus1, promo.rfprimed.plus1, promo.rfnonprimed.minus1, promo.rfnonprimed.plus1, promo.rfq.minus1, promo.rfq.plus1), c("-1","1","-1","1","-1","1"), c(summary(promo.plot.regress)$coefficients[2,2], summary(promo.plot.regress)$coefficients[2,2], summary(promo.plot.regress)$coefficients[3,2], summary(promo.plot.regress)$coefficients[3,2], summary(promo.plot.regress)$coefficients[4,2], summary(promo.plot.regress)$coefficients[4,2]))
+colnames(promo.plot.data) <- c("RF","RT","plusminus","se")
+limits <- aes(ymax = RT + se, ymin = RT - se)
+
+promo.plot <- ggplot(data=promo.plot.data, aes(x=plusminus, y=RT, linetype=RF)) + # data to plot
+  geom_line(aes(group = RF)) + # add regression line
+  geom_errorbar(limits, width=.1) +
+  theme_bw(base_family = "Arial", base_size = 16) + # font and font size
+  theme(legend.position = c(.15,.92)) + # legend position
+  theme(legend.key = element_blank()) + # no border around legend
+  theme(legend.title=element_blank()) + # remove legend title
+  theme(axis.title.x = element_text(vjust=-0.3)) + # move x-axis label lower
+  theme(axis.title.y = element_text(vjust=1.3)) + # move y-axis label left
+  theme(panel.grid.minor = element_blank()) + # no grids
+  theme(panel.grid.major = element_blank()) + # no borders
+  theme(panel.border = element_blank()) + # removes default grey axis lines
+  theme(axis.line = element_line(color = 'black')) + # put axis lines back, but in black
+  coord_cartesian(ylim=c(600, 700)) + # y-axis range
+  scale_linetype_discrete(labels = c("aRFprimed"="RF of focal role", "bRFnon-primed"="RF of non-focal role", "cRFQ"="RFQ"), breaks=c("aRFprimed","bRFnon-primed","cRFQ")) +
+  scale_x_discrete("", labels = c("-1"="More prevention-focused\nat pre-testing (-1 SD)", "1"="More promotion-focused\nat pre-testing (+1 SD)")) + # x-axis titles
+  scale_y_continuous("Reaction time for promotion words", breaks = seq(600, 700, by = 10)) + # y-axis titles and range
+  annotate("text", x=2.5, y=698.5, label="(a)")
+promo.plot
+ggsave('Figure 1a.png', width=9, height=6, unit='in', dpi=300)
+```
+
+### Prevention plot
+
+```{r echo=FALSE, warning=FALSE}
+prev.plot.regress <- lm(prev ~ rfprimed + rfnonprimed + rfq + promo)
+prev.plot.coefs <- coefficients(prev.plot.regress)
+
+prev.rfprimed.minus1 <- prev.plot.coefs[1] + (prev.plot.coefs[2]*(mean(rfprimed, na.rm=T)-sd(rfprimed, na.rm=T))) + (prev.plot.coefs[3]*(mean(rfnonprimed, na.rm=T))) + (prev.plot.coefs[4]*(mean(rfq, na.rm=T))) + (prev.plot.coefs[5]*(mean(promo, na.rm=T)))
+prev.rfprimed.plus1 <- prev.plot.coefs[1] + (prev.plot.coefs[2]*(mean(rfprimed, na.rm=T)+sd(rfprimed, na.rm=T))) + (prev.plot.coefs[3]*(mean(rfnonprimed, na.rm=T))) + (prev.plot.coefs[4]*(mean(rfq, na.rm=T))) + (prev.plot.coefs[5]*(mean(promo, na.rm=T)))
+
+prev.rfnonprimed.minus1 <- prev.plot.coefs[1] + (prev.plot.coefs[2]*(mean(rfprimed, na.rm=T))) + (prev.plot.coefs[3]*(mean(rfnonprimed, na.rm=T)-sd(rfnonprimed, na.rm=T))) + (prev.plot.coefs[4]*(mean(rfq, na.rm=T))) + (prev.plot.coefs[5]*(mean(promo, na.rm=T)))
+prev.rfnonprimed.plus1 <- prev.plot.coefs[1] + (prev.plot.coefs[2]*(mean(rfprimed, na.rm=T))) + (prev.plot.coefs[3]*(mean(rfnonprimed, na.rm=T)+sd(rfnonprimed, na.rm=T))) + (prev.plot.coefs[4]*(mean(rfq, na.rm=T))) + (prev.plot.coefs[5]*(mean(promo, na.rm=T)))
+
+prev.rfq.minus1 <- prev.plot.coefs[1] + (prev.plot.coefs[2]*(mean(rfprimed, na.rm=T))) + (prev.plot.coefs[3]*(mean(rfnonprimed, na.rm=T))) + (prev.plot.coefs[4]*(mean(rfq, na.rm=T)-sd(rfq, na.rm=T))) + (prev.plot.coefs[5]*(mean(promo, na.rm=T)))
+prev.rfq.plus1 <- prev.plot.coefs[1] + (prev.plot.coefs[2]*(mean(rfprimed, na.rm=T))) + (prev.plot.coefs[3]*(mean(rfnonprimed, na.rm=T))) + (prev.plot.coefs[4]*(mean(rfq, na.rm=T)+sd(rfq, na.rm=T))) + (prev.plot.coefs[5]*(mean(promo, na.rm=T)))
+
+prev.plot.data <- data.frame(c("aRFprimed","aRFprimed","bRFnon-primed","bRFnon-primed","cRFQ","cRFQ"), c(prev.rfprimed.minus1, prev.rfprimed.plus1, prev.rfnonprimed.minus1, prev.rfnonprimed.plus1, prev.rfq.minus1, prev.rfq.plus1), c("-1","1","-1","1","-1","1"), c(summary(prev.plot.regress)$coefficients[2,2], summary(prev.plot.regress)$coefficients[2,2], summary(prev.plot.regress)$coefficients[3,2], summary(prev.plot.regress)$coefficients[3,2], summary(prev.plot.regress)$coefficients[4,2], summary(prev.plot.regress)$coefficients[4,2]))
+colnames(prev.plot.data) <- c("RF","RT","plusminus","se")
+limits <- aes(ymax = RT + se, ymin = RT - se)
+
+prev.plot <- ggplot(data=prev.plot.data, aes(x=plusminus, y=RT, linetype=RF)) + # data to plot
+  geom_line(aes(group = RF)) + # add regression line
+  geom_errorbar(limits, width=.1) +
+  theme_bw(base_family = "Arial", base_size = 16) + # font and font size
+  theme(legend.position = "none") + # legend position
+  theme(axis.title.x = element_text(vjust=-0.3)) + # move x-axis label lower
+  theme(axis.title.y = element_text(vjust=1.3)) + # move y-axis label left
+  theme(panel.grid.minor = element_blank()) + # no grids
+  theme(panel.grid.major = element_blank()) + # no borders
+  theme(panel.border = element_blank()) + # removes default grey axis lines
+  theme(axis.line = element_line(color = 'black')) + # put axis lines back, but in black
+  coord_cartesian(ylim=c(600, 700)) + # y-axis range
+  scale_linetype_discrete(labels = c("aRFprimed"="RFprimed", "bRFnon-primed"="RFnon-primed", "cRFQ"="RFQ"), breaks=c("aRFprimed","bRFnon-primed","cRFQ")) +
+  scale_x_discrete("", labels = c("-1"="More prevention-focused\nat pre-testing (-1 SD)", "1"="More promotion-focused\nat pre-testing (+1 SD)")) + # x-axis titles
+  scale_y_continuous("Reaction time for prevention words", breaks = seq(600, 700, by = 10)) + # y-axis titles and range
+  annotate("text", x=2.5, y=698.5, label="(b)")
+prev.plot
+ggsave('Figure 1b.png', width=9, height=6, unit='in', dpi=300)
+```
+
+
+## (7) Supplementary Analyses
+
+### Promotion Analyses
+
+#### Regressing on RT for promotion words on main effects
+```{r echo=FALSE}
+summary(promo.regress.m1 <- lm(promolog ~ cond_c + rfs_c + rfb_c + rfq_c + prevlog_c))
+round(confint(promo.regress.m1, level = 0.95), digits=2)
+```
+
+#### Regression with interactions added
+```{r echo=FALSE}
+summary(promo.regress.m2 <- lm(promolog ~ cond_c + rfs_c + rfb_c + rfq_c + cond_c:rfs_c + cond_c:rfb_c + cond_c:rfq_c + prevlog_c))
+round(confint(promo.regress.m2, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for condition x identity-specific motivation-student interaction term:** `r round((summary(promo.regress.m2)$r.squared-summary(lm(promolog ~ cond_c + rfs_c + rfb_c + rfq_c + cond_c:rfb_c + cond_c:rfq_c + prevlog_c))$r.squared)/(1-summary(promo.regress.m2)$r.squared), digits=3)`  
+***f*<sup>2</sup> value (effect size) for condition x identity-specific motivation-friend interaction term:** `r round((summary(promo.regress.m2)$r.squared-summary(lm(promolog ~ cond_c + rfs_c + rfb_c + rfq_c + cond_c:rfs_c + cond_c:rfq_c + prevlog_c))$r.squared)/(1-summary(promo.regress.m2)$r.squared), digits=3)`
+
+***f*<sup>2</sup> value (effect size) for condition x RFQ interaction term:** `r round((summary(promo.regress.m2)$r.squared-summary(lm(promolog ~ cond_c + rfs_c + rfb_c + rfq_c + cond_c:rfs_c + cond_c:rfb_c + prevlog_c))$r.squared)/(1-summary(promo.regress.m2)$r.squared), digits=3)`
+
+
+#### Simple effects of identity-specific motivation-student in each condition
+
+**Estimates and CIs:**
+```{r echo=FALSE}
+contrasts(cond)
+promo.lmres <- lmres(promolog ~ cond_c + rfs_c + rfb_c + rfq_c + cond_c:rfs_c + cond_c:rfb_c + cond_c:rfq_c + prevlog_c, mydata)
+summary(promo.rfs.ss <- simpleSlope(promo.lmres, pred="rfs_c", mod1="cond_c"))
+```
+
+**CIs in the student condition:** `r round(promo.rfs.ss$simple_slope[1,1] + c(-1,1)*promo.rfs.ss$simple_slope[1,2]*qt(0.975, promo.rfs.ss$Df), digits=2)`  
+
+**CIs in the friend condition:** `r round(promo.rfs.ss$simple_slope[2,1] + c(-1,1)*promo.rfs.ss$simple_slope[2,2]*qt(0.975, promo.rfs.ss$Df), digits=2)`
+
+
+#### Simple effects of identity-specific motivation-friend in each condition
+
+**Estimates and CIs:**
+```{r echo=FALSE}
+contrasts(cond)
+summary(promo.rfb.ss <- simpleSlope(promo.lmres, pred="rfb_c", mod1="cond_c"))
+```
+
+**CIs in the student condition:** `r round(promo.rfb.ss$simple_slope[1,1] + c(-1,1)*promo.rfb.ss$simple_slope[1,2]*qt(0.975, promo.rfb.ss$Df), digits=2)`  
+
+**CIs in the friend condition:** `r round(promo.rfb.ss$simple_slope[2,1] + c(-1,1)*promo.rfb.ss$simple_slope[2,2]*qt(0.975, promo.rfb.ss$Df), digits=2)`
+
+
+#### Simple effects of RFQ in each condition
+
+**Estimates and CIs:**
+```{r echo=FALSE}
+contrasts(cond)
+summary(promo.rfq.ss <- simpleSlope(promo.lmres, pred="rfq_c", mod1="cond_c"))
+```
+
+**CIs in the student condition:** `r round(promo.rfq.ss$simple_slope[1,1] + c(-1,1)*promo.rfq.ss$simple_slope[1,2]*qt(0.975, promo.rfq.ss$Df), digits=2)`  
+
+**CIs in the friend condition:** `r round(promo.rfq.ss$simple_slope[2,1] + c(-1,1)*promo.rfq.ss$simple_slope[2,2]*qt(0.975, promo.rfq.ss$Df), digits=2)`
+
+
+### Prevention Analyses
+
+#### Regressing on RT for prevention words on main effects
+```{r echo=FALSE}
+summary(prev.regress.m1 <- lm(prevlog ~ cond_c + rfs_c + rfb_c + rfq_c + promolog_c))
+round(confint(prev.regress.m1, level = 0.95), digits=2)
+```
+
+#### Regression with interactions added
+```{r echo=FALSE}
+summary(prev.regress.m2 <- lm(prevlog ~ cond_c + rfs_c + rfb_c + rfq_c + cond_c:rfs_c + cond_c:rfb_c + cond_c:rfq_c + promolog_c))
+round(confint(prev.regress.m2, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for condition x identity-specific motivation-student interaction term:** `r round((summary(prev.regress.m2)$r.squared-summary(lm(prevlog ~ cond_c + rfs_c + rfb_c + rfq_c + cond_c:rfb_c + cond_c:rfq_c + promolog_c))$r.squared)/(1-summary(prev.regress.m2)$r.squared), digits=3)`  
+***f*<sup>2</sup> value (effect size) for condition x identity-specific motivation-friend interaction term:** `r round((summary(prev.regress.m2)$r.squared-summary(lm(prevlog ~ cond_c + rfs_c + rfb_c + rfq_c + cond_c:rfs_c + cond_c:rfq_c + promolog_c))$r.squared)/(1-summary(prev.regress.m2)$r.squared), digits=3)`  
+***f*<sup>2</sup> value (effect size) for condition x RFQ interaction term:** `r round((summary(prev.regress.m2)$r.squared-summary(lm(prevlog ~ cond_c + rfs_c + rfb_c + rfq_c + cond_c:rfs_c + cond_c:rfb_c + promolog_c))$r.squared)/(1-summary(prev.regress.m2)$r.squared), digits=3)`
+
+
+#### Simple effects of identity-specific motivation-student in each condition
+
+**Estimates and CIs:**
+```{r echo=FALSE}
+contrasts(cond)
+prev.lmres <- lmres(prevlog ~ cond_c + rfs_c + rfb_c + rfq_c + cond_c:rfs_c + cond_c:rfb_c + cond_c:rfq_c + promolog_c, mydata)
+summary(prev.rfs.ss <- simpleSlope(prev.lmres, pred="rfs_c", mod1="cond_c")) # -1 = student; +1 = friend
+```
+
+**CIs in the student condition:** `r round(prev.rfs.ss$simple_slope[1,1] + c(-1,1)*prev.rfs.ss$simple_slope[1,2]*qt(0.975, prev.rfs.ss$Df), digits=2)`  
+
+**CIs in the friend condition:** `r round(prev.rfs.ss$simple_slope[2,1] + c(-1,1)*prev.rfs.ss$simple_slope[2,2]*qt(0.975, prev.rfs.ss$Df), digits=2)`
+
+
+#### Simple effects of identity-specific motivation-friend in each condition
+
+**Estimates and CIs:**
+```{r echo=FALSE}
+contrasts(cond)
+summary(prev.rfb.ss <- simpleSlope(prev.lmres, pred="rfb_c", mod1="cond_c"))
+```
+
+**CIs in the student condition:** `r round(prev.rfb.ss$simple_slope[1,1] + c(-1,1)*prev.rfb.ss$simple_slope[1,2]*qt(0.975, prev.rfb.ss$Df), digits=2)`  
+
+**CIs in the friend condition:** `r round(prev.rfb.ss$simple_slope[2,1] + c(-1,1)*prev.rfb.ss$simple_slope[2,2]*qt(0.975, prev.rfb.ss$Df), digits=2)`
+
+
+#### Simple effects of RFQ in each condition
+
+**Estimates and CIs:**
+```{r echo=FALSE, warning=FALSE}
+contrasts(cond)
+summary(prev.rfq.ss <- simpleSlope(prev.lmres, pred="rfq_c", mod1="cond_c"))
+```
+
+**CIs in the student condition:** `r round(prev.rfq.ss$simple_slope[1,1] + c(-1,1)*prev.rfq.ss$simple_slope[1,2]*qt(0.975, prev.rfq.ss$Df), digits=2)`  
+
+**CIs in the friend condition:** `r round(prev.rfq.ss$simple_slope[2,1] + c(-1,1)*prev.rfq.ss$simple_slope[2,2]*qt(0.975, prev.rfq.ss$Df), digits=2)`
+
+
+```{r echo=FALSE}
+# scripts for producing tables
+
+# full models
+regtable <- function(modellist, docname) {
+  sections <- list(NA)
+  colnam <- vector("list", length(modellist)*4)
+  for (i in 1:length(modellist)) {
+    assign(paste("b", i, sep = ""), round(coef(summary(modellist[[i]])), digits=3))
+    assign(paste("ci", i, sep = ""), paste(round(get(paste("b", i, sep=""))[, 1], digits=2), " [", round(confint(modellist[[i]], level = 0.95)[,1], digits=2), ", ", round(confint(modellist[[i]], level = 0.95)[,2], digits=2), "]", sep = ""))
+    assign(paste("t", i, sep = ""), round(summary(modellist[[i]])$coefficients[,3], digits=2))
+    assign(paste("df", i, sep = ""), rep(summary(modellist[[i]])$df[2],each=1+length(labels(modellist[[1]]))))
+    assign(paste("p", i, sep = ""), round(summary(modellist[[i]])$coefficients[,4], digits=3))
+    assign(paste("section", i, sep = ""), rbind(cbind(get(paste("ci", i, sep = "")), get(paste("t", i, sep = "")), get(paste("df", i, sep = "")), get(paste("p", i, sep = "")))))
+    sections[[i]] <- get(paste("section", i, sep = ""))
+    colnam[1+(4*(i-1))] <- paste(all.vars(summary(modellist[[i]])$call)[1], ": b (95% CIs)", sep="")
+    colnam[2+(4*(i-1))] <- "t"
+    colnam[3+(4*(i-1))] <- "df"
+    colnam[4+(4*(i-1))] <- "p"
+  }
+  complete <- do.call(cbind, sections)
+  colnames(complete) <- colnam
+  rnames <- c("Intercept")
+  for (j in 1:length(labels(modellist[[1]]))) {
+    rnames <- append(rnames, labels(modellist[[1]])[j])
+  }
+  rownames(complete) <- rnames
+  complete <- complete[-1,]
+  rtffile <- RTF(file=paste(docname, ".doc", sep=""), width=11, height=8.5, font.size=8)  # this can be an .rtf or a .doc
+  addTable(rtffile, cbind(rownames(complete), complete), col.justify="C", header.col.justify="C")
+  done(rtffile)
+}
+models1 <- list(promo.active.regress, prev.active.regress)
+regtable(models1, "Table 3")
+models2 <- list(promo.regress.m1, prev.regress.m1)
+regtable(models2, "Table S4 Step 1")
+models3 <- list(promo.regress.m2, prev.regress.m2)
+regtable(models3, "Table S4 Step 2")
+
+# simple slopes section
+sstable <- function(modellist, docname) {
+  sections <- list(NA)
+  colnam <- vector("list", length(modellist)*4)
+  for (i in 1:length(modellist)) {
+    assign(paste("b", i, sep = ""), signif(summary(modellist[[i]])$simple_slope))
+    assign(paste("ci", i, sep = ""), paste(get(paste("b", i, sep=""))[, 1], " [", c(signif(get(paste("b", i, sep=""))[1,1] + c(-1,1)*get(paste("b", i, sep=""))[1,2]*qt(0.975, modellist[[i]]$Df), 3)[1], signif(get(paste("b", i, sep=""))[2,1] + c(-1,1)*get(paste("b", i, sep=""))[2,2]*qt(0.975, modellist[[i]]$Df), 3)[1]), ", ", c(signif(get(paste("b", i, sep=""))[1,1] + c(-1,1)*get(paste("b", i, sep=""))[1,2]*qt(0.975, modellist[[i]]$Df), 3)[2], signif(get(paste("b", i, sep=""))[2,1] + c(-1,1)*get(paste("b", i, sep=""))[2,2]*qt(0.975, modellist[[1]]$Df), 3)[2]), "]", sep = ""))
+    assign(paste("t", i, sep = ""), signif(get(paste("b", i, sep=""))[,3], 3))
+    assign(paste("df", i, sep = ""), rep(summary(modellist[[i]])$Df,each=2))
+    assign(paste("p", i, sep = ""), signif(get(paste("b", i, sep=""))[,4], 3))
+    assign(paste("section", i, sep = ""), rbind(cbind(get(paste("ci", i, sep = "")), get(paste("t", i, sep = "")), get(paste("df", i, sep = "")), get(paste("p", i, sep = "")))))
+    sections[[i]] <- get(paste("section", i, sep = ""))
+    colnam[1+(4*(i-1))] <- paste(modellist[[i]]$nomY, ": b (95% CIs)", sep="")
+    colnam[2+(4*(i-1))] <- "t"
+    colnam[3+(4*(i-1))] <- "df"
+    colnam[4+(4*(i-1))] <- "p"
+  }
+  complete <- do.call(cbind, sections)
+  colnames(complete) <- colnam
+  rownames(complete) <- c(row.names(summary(modellist[[i]])$Points)[1], row.names(summary(modellist[[i]])$Points)[2])
+  rtffile <- RTF(file=paste(docname, ".doc", sep=""), width=11, height=8.5, font.size=8)
+  addTable(rtffile, cbind(rownames(complete), complete), col.justify="C", header.col.justify="C")
+  done(rtffile)
+}
+models.ss1 <- list(promo.rfs.ss, prev.rfs.ss)
+sstable(models.ss1, "Table S5 Student RF")
+models.ss2 <- list(promo.rfb.ss, prev.rfb.ss)
+sstable(models.ss2, "Table S5 Best friend RF")
+models.ss3 <- list(promo.rfq.ss, prev.rfq.ss)
+sstable(models.ss3, "Table S5 RFQ")
+```

@@ -1,0 +1,254 @@
+---
+title: "Study 3b"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: default
+---
+
+## (1) Description of Data
+
+The posted data for this study consists of 1 compiled, deidentified data file. This data file does not include data from an additional 79 respondents either because they did not complete the study, they completed the study more than once, or they nominated inappropriate or nongoal-relevant identities (e.g., “evil,” “sentient bag of meat”) or two identities that were very similar to each other (e.g., “Caucasian American” and “White American”).
+
+```{r include=FALSE}
+options(width=100)
+
+library(RCurl)
+library(plyr)
+library(ggplot2)
+library(pequod)
+library(psych)
+library(data.table)
+library(rtf)
+library(pwr)
+
+## DATA PREPARATION ##
+csv <- getURL("https://raw.githubusercontent.com/abrowman/ism-jpsp2017/master/Study%203b/ISM_Study3b.csv")
+mydata <- read.csv(textConnection(csv))
+attach(mydata)
+
+# score measures
+rfqpro <- ((6-Promote1r)+Promote2+Promote3+(6-Promote4r)+Promote5+(6-Promote6r))/6
+rfqpre <- ((6-Prevent1r)+(6-Prevent2r)+Prevent3+(6-Prevent4r)+(6-Prevent5r))/5
+rfq <- rfqpro-rfqpre
+rfq_c <- scale(rfq,scale=F,center=T)
+
+rfapro <- (RFApro2+RFApro3+RFApro4+RFApro5)/4
+rfapre <- (RFApre1+RFApre2+RFApre3+RFApre5)/4
+rfa <- rfapro-rfapre
+rfa_c <- scale(rfa,scale=F,center=T)
+
+rfbpro <- (RFBpro2+RFBpro3+RFBpro4+RFBpro5)/4
+rfbpre <- (RFBpre1+RFBpre2+RFBpre3+RFBpre5)/4
+rfb <- rfbpro-rfbpre
+rfb_c <- scale(rfb,scale=F,center=T)
+
+rfdif <- abs(rfa-rfb)
+integration_c <- scale(Integrate,scale=F,center=T)
+```
+
+
+## (2) Descriptive Statistics
+
+**Total *N*:** `r nrow(mydata)`
+
+**Sensitivity analysis:** This sample provided a statistical power of .80 to detect effects of *f*^2^ >= `r round(pwr.f2.test(u = 1, v = nrow(mydata)-2, sig.level = .05, power = .80)$f2, digits = 3)`.
+
+**Percentage by gender:**
+```{r echo=FALSE}
+gender <- factor(ifelse(Gender==1, "male", ifelse(Gender==2, "female", NA)))
+table(gender, useNA="always")
+```
+
+***M*s and *SD*s:**
+```{r echo=FALSE}
+describe(data.frame(Age,Integrate,rfa,rfapro,rfapre,rfb,rfbpro,rfbpre,rfq,rfqpro,rfqpre))[c(2,3,4)]
+```
+
+**Alphas:**  
+
+* **Identity-specific motivation-A promotion:** `r round(alpha(data.frame(RFApro2,RFApro3,RFApro4,RFApro5))$total$raw_alpha, digits=2)`  
+* **Identity-specific motivation-A prevention:** `r round(alpha(data.frame(RFApre1,RFApre2,RFApre3,RFApre5))$total$raw_alpha, digits=2)`  
+* **Identity-specific motivation-B promotion:** `r round(alpha(data.frame(RFBpro2,RFBpro3,RFBpro4,RFBpro5))$total$raw_alpha, digits=2)`  
+* **Identity-specific motivation-B prevention:** `r round(alpha(data.frame(RFBpre1,RFBpre2,RFBpre3,RFBpre5))$total$raw_alpha, digits=2)`  
+* **RFQ promotion:** `r round(alpha(data.frame((6-Promote1r),Promote2,Promote3,(6-Promote4r),Promote5,(6-Promote6r)))$total$raw_alpha, digits=2)`  
+* **RFQ prevention:** `r round(alpha(data.frame((6-Prevent1r),(6-Prevent2r),Prevent3,(6-Prevent4r),(6-Prevent5r)))$total$raw_alpha, digits=2)`  
+
+
+## (3) Correlations
+
+**Correlations:**
+```{r echo=FALSE}
+corlist <- data.frame(rfa,rfb,rfq,rfdif,Integrate)
+cortable <- data.frame(round(corr.test(as.matrix(corlist))$ci[c(1,2,5,10),1:3], digits=2), round(corr.test(as.matrix(corlist))$ci[c(1,2,5,10),4], digits=4), corr.test(as.matrix(corlist))$n[c(2,3,8,20)]-2)
+colnames(cortable) <- c("lower","r","upper","p","df")
+cortable
+```
+
+
+## (4) Main Analyses
+
+### Regressing on identity-specific motivation-A on Identity-specific motivation-B, integration, and their interaction
+
+**Main effects:**
+```{r echo=FALSE}
+summary(main1 <- lm(rfa ~ rfb_c + integration_c))
+```
+
+**Main effects *CI*s:**
+```{r echo=FALSE}
+round(confint(main1, level = 0.95), digits = 2)
+```
+
+**Omnibus test estimates:**
+```{r echo=FALSE}
+summary(integrate1 <- lm(rfa ~ rfb_c * integration_c))
+```
+
+**Omnibus test *CI*s:**
+```{r echo=FALSE}
+round(confint(integrate1, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for interaction term:** `r round((summary(integrate1)$r.squared-summary(lm(rfa ~ rfb_c + integration_c))$r.squared)/(1-summary(integrate1)$r.squared), digits = 3)`
+
+**Simple slopes:**
+```{r echo=FALSE}
+integrate1.lmres <- lmres(rfa ~ rfb_c * integration_c, mydata)
+summary(integrate1.ss <- simpleSlope(integrate1.lmres, pred="rfb_c", mod1="integration_c"))
+```
+
+**CIs among those with low identity integration:** `r round(integrate1.ss$simple_slope[1,1] + c(-1,1)*integrate1.ss$simple_slope[1,2]*qt(0.975, integrate1.ss$Df), digits=2)`  
+
+**CIs among those with high identity integration:** `r round(integrate1.ss$simple_slope[2,1] + c(-1,1)*integrate1.ss$simple_slope[2,2]*qt(0.975, integrate1.ss$Df), digits=2)`
+
+
+### Regressing on identity-specific motivation-B on Identity-specific motivation-A, integration, and their interaction
+
+**Main effects:**
+```{r echo=FALSE}
+summary(main2 <- lm(rfb ~ rfa_c + integration_c))
+```
+
+**Main effects *CI*s:**
+```{r echo=FALSE}
+round(confint(main2, level = 0.95), digits = 2)
+```
+
+**Omnibus test estimates:**
+```{r echo=FALSE}
+summary(integrate2 <- lm(rfb ~ rfa_c * integration_c))
+```
+
+**Omnibus test *CI*s:**
+```{r echo=FALSE}
+round(confint(integrate2, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for interaction term:** `r round((summary(integrate2)$r.squared-summary(lm(rfb ~ rfa_c + integration_c))$r.squared)/(1-summary(integrate2)$r.squared), digits = 3)`
+
+**Simple slopes:**
+```{r echo=FALSE}
+integrate2.lmres <- lmres(rfb ~ rfa_c * integration_c, mydata)
+summary(integrate2.ss <- simpleSlope(integrate2.lmres, pred="rfa_c", mod1="integration_c"))
+```
+
+**CIs among those with low identity integration:** `r round(integrate2.ss$simple_slope[1,1] + c(-1,1)*integrate2.ss$simple_slope[1,2]*qt(0.975, integrate2.ss$Df), digits=2)`  
+
+**CIs among those with high identity integration:** `r round(integrate2.ss$simple_slope[2,1] + c(-1,1)*integrate2.ss$simple_slope[2,2]*qt(0.975, integrate2.ss$Df), digits=2)`
+
+
+## (5) Figures
+```{r echo=FALSE}
+plot.points1 <- data.frame(c("aLo int","aLo int","bHi int","bHi int"), c("aLo rfb","bHi rfb","aLo rfb","bHi rfb"), c(integrate1.ss$Points[1,1], integrate1.ss$Points[1,2], integrate1.ss$Points[2,1], integrate1.ss$Points[2,2]), c(integrate1.ss$simple_slope[1,2], integrate1.ss$simple_slope[1,2], integrate1.ss$simple_slope[2,2], integrate1.ss$simple_slope[2,2]))
+colnames(plot.points1) <- c("int","rfb","rfa","se")
+limits <- aes(ymax = rfa + se, ymin = rfa - se)
+
+plot1 <- ggplot(data=plot.points1, aes(x=rfb, y=rfa, linetype=int)) + # data to plot
+  geom_line(aes(group = int)) + # add regression line
+  geom_errorbar(limits, width=.1) +
+  theme_bw(base_family = "Arial", base_size = 14) + # font and font size
+  theme(legend.position = c(.19,.95)) + # legend position
+  theme(legend.key = element_blank()) + # no border around legend
+  theme(legend.title = element_blank()) + # remove legend title
+  scale_linetype_discrete(breaks=c("bHi int", "aLo int"), labels=c("Higher identity integration (+1 SD)", "Lower identity integration (-1 SD)")) +
+  theme(axis.title.x = element_blank()) + # move x-axis label lower
+  theme(axis.title.y = element_text(vjust=1.3)) + # move y-axis label left
+  theme(panel.grid.minor = element_blank()) + # no grids
+  theme(panel.grid.major = element_blank()) + # no borders
+  theme(panel.border = element_blank()) + # removes default grey axis lines
+  theme(axis.line = element_line(color = 'black')) + # put axis lines back, but in black
+  coord_cartesian(ylim=c(-.6, .9)) + # y-axis range
+  scale_x_discrete("", labels = c("aLo rfb"="Prevention-focused\n identity #2 (-1 SD)", "bHi rfb"="Promotion-focused\n identity #2 (+1 SD)")) + # x-axis titles
+  scale_y_continuous("Promotion focus of identity #1", breaks = seq(-.6, .9, by=.3)) + # y-axis titles and range
+  annotate("text", x=2.5, y=.88, label="(b)")
+plot1
+ggsave('Figure 3b.png', width=9, height=6, unit='in', dpi=300)
+```
+
+```{r include=FALSE}
+## Scripts for producing tables
+
+# Tables of full models
+regtable <- function(modellist, docname) {
+  sections <- list(NA)
+  colnam <- vector("list", length(modellist)*4)
+  for (i in 1:length(modellist)) {
+    assign(paste("b", i, sep = ""), round(coef(summary(modellist[[i]])), digits=3))
+    assign(paste("ci", i, sep = ""), paste(round(get(paste("b", i, sep=""))[, 1], digits=2), " [", round(confint(modellist[[i]], level = 0.95)[,1], digits=2), ", ", round(confint(modellist[[i]], level = 0.95)[,2], digits=2), "]", sep = ""))
+    assign(paste("t", i, sep = ""), round(summary(modellist[[i]])$coefficients[,3], digits=2))
+    assign(paste("df", i, sep = ""), rep(summary(modellist[[i]])$df[2],each=1+length(labels(modellist[[1]]))))
+    assign(paste("p", i, sep = ""), round(summary(modellist[[i]])$coefficients[,4], digits=3))
+    assign(paste("section", i, sep = ""), rbind(cbind(get(paste("ci", i, sep = "")), get(paste("t", i, sep = "")), get(paste("df", i, sep = "")), get(paste("p", i, sep = "")))))
+    sections[[i]] <- get(paste("section", i, sep = ""))
+    colnam[1+(4*(i-1))] <- paste(all.vars(summary(modellist[[i]])$call)[1], ": b (95% CIs)", sep="")
+    colnam[2+(4*(i-1))] <- "t"
+    colnam[3+(4*(i-1))] <- "df"
+    colnam[4+(4*(i-1))] <- "p"
+  }
+  complete <- do.call(cbind, sections)
+  colnames(complete) <- colnam
+  rnames <- c("Intercept")
+  for (j in 1:length(labels(modellist[[1]]))) {
+    rnames <- append(rnames, labels(modellist[[1]])[j])
+  }
+  rownames(complete) <- rnames
+  complete <- complete[-1,]
+  rtffile <- RTF(file=paste(docname, ".doc", sep=""), width=11, height=8.5, font.size=8)  # this can be an .rtf or a .doc
+  addTable(rtffile, cbind(rownames(complete), complete), col.justify="C", header.col.justify="C")
+  done(rtffile)
+}
+models <- list(main1, main2)
+regtable(models, "Table 4b Step 1")
+models <- list(integrate1, integrate2)
+regtable(models, "Table 4b Step 2")
+
+# Tables for simple slopes
+sstable <- function(modellist, docname) {
+  sections <- list(NA)
+  colnam <- vector("list", length(modellist)*4)
+  for (i in 1:length(modellist)) {
+    assign(paste("b", i, sep = ""), signif(summary(modellist[[i]])$simple_slope))
+    assign(paste("ci", i, sep = ""), paste(get(paste("b", i, sep=""))[, 1], " [", c(signif(get(paste("b", i, sep=""))[1,1] + c(-1,1)*get(paste("b", i, sep=""))[1,2]*qt(0.975, modellist[[i]]$Df), 3)[1], signif(get(paste("b", i, sep=""))[2,1] + c(-1,1)*get(paste("b", i, sep=""))[2,2]*qt(0.975, modellist[[i]]$Df), 3)[1]), ", ", c(signif(get(paste("b", i, sep=""))[1,1] + c(-1,1)*get(paste("b", i, sep=""))[1,2]*qt(0.975, modellist[[i]]$Df), 3)[2], signif(get(paste("b", i, sep=""))[2,1] + c(-1,1)*get(paste("b", i, sep=""))[2,2]*qt(0.975, modellist[[1]]$Df), 3)[2]), "]", sep = ""))
+    assign(paste("t", i, sep = ""), signif(get(paste("b", i, sep=""))[,3], 3))
+    assign(paste("df", i, sep = ""), rep(summary(modellist[[i]])$Df,each=2))
+    assign(paste("p", i, sep = ""), signif(get(paste("b", i, sep=""))[,4], 3))
+    assign(paste("section", i, sep = ""), rbind(cbind(get(paste("ci", i, sep = "")), get(paste("t", i, sep = "")), get(paste("df", i, sep = "")), get(paste("p", i, sep = "")))))
+    sections[[i]] <- get(paste("section", i, sep = ""))
+    colnam[1+(4*(i-1))] <- paste(modellist[[i]]$nomY, ": b (95% CIs)", sep="")
+    colnam[2+(4*(i-1))] <- "t"
+    colnam[3+(4*(i-1))] <- "df"
+    colnam[4+(4*(i-1))] <- "p"
+  }
+  complete <- do.call(cbind, sections)
+  colnames(complete) <- colnam
+  rownames(complete) <- c(row.names(summary(modellist[[i]])$Points)[1], row.names(summary(modellist[[i]])$Points)[2])
+  rtffile <- RTF(file=paste(docname, ".doc", sep=""), width=11, height=8.5, font.size=8)
+  addTable(rtffile, cbind(rownames(complete), complete), col.justify="C", header.col.justify="C")
+  done(rtffile)
+}
+models.ss <- list(integrate1.ss, integrate2.ss)
+sstable(models.ss, "Table 4b Simple Slopes")
+```

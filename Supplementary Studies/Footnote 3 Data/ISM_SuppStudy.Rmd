@@ -1,0 +1,67 @@
+---
+title: "Supplementary Study"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: default
+---
+
+## (1) Description of Data
+
+The posted data for this study consists of 1 compiled, deidentified data file. This data file does not include data from an additional 18 respondents either because it was not possible to accurately match their separate survey sheets.
+
+```{r include=FALSE}
+options(width=100)
+
+library(RCurl)
+library(plyr)
+library(psych)
+
+## DATA PREPARATION ##
+csv <- getURL("https://raw.githubusercontent.com/abrowman/ism-jpsp2017/master/Supplementary%20Studies/Footnote%203%20Data/ISM_SuppStudy.csv")
+mydata <- read.csv(textConnection(csv))
+attach(mydata)
+
+# calculate scores
+rfapro <- (rfapro1+rfapro2+rfapro3+rfapro4)/4
+rfapre <- (rfapre1+rfapre2+rfapre3+rfapre4)/4
+rfcpro <- (rfcpro1+rfcpro2+rfcpro3+rfcpro4)/4
+rfcpre <- (rfcpre1+rfcpre2+rfcpre3+rfcpre4)/4
+rfa <- rfapro-rfapre
+rfc <- rfcpro-rfcpre
+crfspro <- ((6-rfqpro4r)+rfqpro5+rfqexpro1+rfqexpro2+rfqexpro3)/5 
+crfspre <- (rfqpre3+(6-rfqpre5r)+rfqexpre1+rfqexpre2+rfqexpre3)/5
+crfs <- crfspro-crfspre
+rfqpro <- ((6-rfqpro1r)+rfqpro2+rfqpro3+(6-rfqpro4r)+rfqpro5+(6-rfqpro6r))/6
+rfqpre <- ((6-rfqpre1r)+(6-rfqpre2r)+rfqpre3+(6-rfqpre4r)+(6-rfqpre5r))/5
+rfq <- rfqpro-rfqpre
+```
+
+
+## (2) Descriptive Statistics
+
+**Total *N*:** `r nrow(mydata)`
+
+**Alphas:**
+
+* **SAS-REG~student-pro~:** `r round(alpha(data.frame(rfapro1,rfapro2,rfapro3,rfapro4))$total$raw_alpha, digits=2)`  
+* **SAS-REG~student-pre~:** `r round(alpha(data.frame(rfapre1,rfapre2,rfapre3,rfapre4))$total$raw_alpha, digits=2)`  
+* **SAS-REG~child-pro~:** `r round(alpha(data.frame(rfcpro1,rfcpro2,rfcpro3,rfcpro4))$total$raw_alpha, digits=2)`  
+* **SAS-REG~child-pre~:** `r round(alpha(data.frame(rfcpre1,rfcpre2,rfcpre3,rfcpre4))$total$raw_alpha, digits=2)`  
+* **CRFS~pro~:** `r round(alpha(data.frame((6-rfqpro4r),rfqpro5,rfqexpro1,rfqexpro2,rfqexpro3))$total$raw_alpha, digits=2)`  
+* **CRFS~pre~:** `r round(alpha(data.frame(rfqpre3,(6-rfqpre5r),rfqexpre1,rfqexpre2,rfqexpre3))$total$raw_alpha, digits=2)`  
+* **RFQ~pro~:** `r round(alpha(data.frame((6-rfqpro1r),rfqpro2,rfqpro3,(6-rfqpro4r),rfqpro5,(6-rfqpro6r)))$total$raw_alpha, digits=2)`  
+* **RFQ~pre~:** `r round(alpha(data.frame((6-rfqpre1r),(6-rfqpre2r),rfqpre3,(6-rfqpre4r),(6-rfqpre5r)))$total$raw_alpha, digits=2)`  
+
+
+## (3) Correlations
+
+**Correlations:**
+```{r echo=FALSE}
+corlist <- data.frame(rfa, rfc, crfs, rfq)
+cortable <- data.frame(round(corr.test(as.matrix(corlist))$ci[,1:3], digits=2), round(corr.test(as.matrix(corlist))$ci[,4], digits=3), corr.test(as.matrix(corlist))$n[c(2,3,4,7,8,12)]-2)
+colnames(cortable) <- c("lower","r","upper","p","df")
+cortable
+```

@@ -1,0 +1,373 @@
+---
+title: "Study 4"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: default
+---
+
+## (1) Description of Data
+
+The posted data for this study consists of 1 compiled, deidentified data file.
+
+```{r include=FALSE}
+options(width=100)
+
+library(RCurl)
+library(plyr)
+library(ggplot2)
+library(pequod)
+library(psych)
+library(data.table)
+library(rtf)
+library(pwr)
+
+## DATA PREPARATION ##
+csv <- getURL("https://raw.githubusercontent.com/abrowman/ism-jpsp2017/master/Study%204/ISM_Study4.csv")
+mydata <- read.csv(textConnection(csv))
+attach(mydata)
+
+# calculate scores
+rf1pro <- (rfapro2+rfapro3+rfapro4+rfapro5)/4
+rf1pre <- (rfapre1+rfapre2+rfapre3+rfapre5)/4
+rf1 <- rf1pro-rf1pre
+rf1_c <- scale(rf1,scale=F,center=T)
+
+rf2pro <- (rfbpro2+rfbpro3+rfbpro4+rfbpro5)/4
+rf2pre <- (rfbpre1+rfbpre2+rfbpre3+rfbpre5)/4
+rf2 <- rf2pro-rf2pre
+rf2_c <- scale(rf2,scale=F,center=T)
+
+pro.motives <- (ideal + growth + idealself + attain + eager + pursueopp + desirable)/7
+pre.motives <- (ought + security + oughtself + maintain + cautious + vigilant + missopp + mistake + feasible)/9
+
+pro.emo <- ((10-happy) + disappoint + (10-satis) + low + sad + discourage)/6
+pre.emo <- (tense + agit + (10-calm) + onedge + uneasy + (10-relax))/6
+
+stratcount <- rowSums(subset(mydata, select=strategies_1_TEXT:strategies_10_TEXT)!="")
+
+pro.strat1 <- rowSums(subset(mydata, select=stratpro1_1:stratpro1_10), na.rm=T)/rowSums(!is.na(subset(mydata, select=stratpro1_1:stratpro1_10)))
+pro.strat2 <- rowSums(subset(mydata, select=stratpro2_1:stratpro2_10), na.rm=T)/rowSums(!is.na(subset(mydata, select=stratpro2_1:stratpro2_10)))
+pro.strat <- (pro.strat1+pro.strat2)/2
+
+pre.strat1 <- rowSums(subset(mydata, select=stratpre1_1:stratpre1_10), na.rm=T)/rowSums(!is.na(subset(mydata, select=stratpre1_1:stratpre1_10)))
+pre.strat2 <- rowSums(subset(mydata, select=stratpre2_1:stratpre2_10), na.rm=T)/rowSums(!is.na(subset(mydata, select=stratpre2_1:stratpre2_10)))
+pre.strat <- (pre.strat1+pre.strat2)/2
+
+abstract.strat <- rowSums(subset(mydata, select=strat.feas_1:strat.feas_10), na.rm=T)/rowSums(!is.na(subset(mydata, select=strat.feas_1:strat.feas_10)))
+
+pro.counter <- (rowSums(subset(mydata, select=counter2_1:counter2_10)==1, na.rm=T)/rowSums(!is.na(subset(mydata, select=counter2_1:counter2_10))))*100
+pre.counter <- (rowSums(subset(mydata, select=counter2_1:counter2_10)==2, na.rm=T)/rowSums(!is.na(subset(mydata, select=counter2_1:counter2_10))))*100
+
+cond_c <- scale(cond, scale=F, center=T)
+```
+
+
+## (2) Descriptive Statistics
+
+**Total *N*:** `r nrow(mydata)`
+
+**Sensitivity analysis:** This sample provided a statistical power of .80 to detect effects of *f*^2^ >= `r round(pwr.f2.test(u = 1, v = nrow(mydata)-2, sig.level = .05, power = .80)$f2, digits = 3)`.
+
+**Percentage by gender:**
+```{r echo=FALSE}
+Gender <- factor(ifelse(gender==1, "male", ifelse(gender==2, "female", NA)))
+table(Gender, useNA="always")
+```
+
+***N* in each condition:**
+```{r echo=FALSE}
+table(cond, useNA="always")
+```
+
+***M*s and *SD*s:**
+```{r echo=FALSE}
+describe(data.frame(age, rf1, rf1pro, rf1pre, rf2, rf2pro, rf2pre, pro.motives, pre.motives, pro.strat, pre.strat, abstract.strat, pro.counter, pro.emo, pre.emo, abs(rf1-rf2)))[c(2,3,4)]
+```
+
+**Internal consistencies of measures:**
+
+  * **SASRF-1 promotion:** $\alpha$ = `r round(alpha(data.frame(rfapro2,rfapro3,rfapro4,rfapro5))$total$raw_alpha, digits=2)`  
+  * **SASRF-1 prevention:** $\alpha$ = `r round(alpha(data.frame(rfapre1,rfapre2,rfapre3,rfapre5))$total$raw_alpha, digits=2)`  
+  * **SASRF-2 promotion:** $\alpha$ = `r round(alpha(data.frame(rfbpro2,rfbpro3,rfbpro4,rfbpro5))$total$raw_alpha, digits=2)`  
+  * **SASRF-2 prevention:** $\alpha$ = `r round(alpha(data.frame(rfbpre1,rfbpre2,rfbpre3,rfbpre5))$total$raw_alpha, digits=2)`
+  * **Promotion motives:** $\alpha$ = `r round(alpha(data.frame(ideal, growth, idealself, attain, eager, pursueopp, desirable))$total$raw_alpha, digits=2)`  
+  * **Prevention motives:** $\alpha$ = `r round(alpha(data.frame(ought, security, oughtself, maintain, cautious, vigilant, missopp, mistake, feasible))$total$raw_alpha, digits=2)`  
+  * **Promotion strategies:** *r*(`r round(cor.test(pro.strat1, pro.strat2)$parameter, digits=2)`) = `r round(cor.test(pro.strat1, pro.strat2)$estimate, digits=2)`, *p* = `r cor.test(pro.strat1, pro.strat2)$p.value`
+  * **Prevention strategies:** *r*(`r round(cor.test(pre.strat1, pre.strat2)$parameter, digits=2)`) = `r round(cor.test(pre.strat1, pre.strat2)$estimate, digits=2)`, *p* = `r cor.test(pre.strat1, pre.strat2)$p.value`  
+  * **Negative promotion emotions:** $\alpha$ = `r round(alpha(data.frame((10-happy), disappoint, (10-satis), low, sad, discourage))$total$raw_alpha, digits=2)`  
+  * **Negative prevention emotions:** $\alpha$ = `r round(alpha(data.frame(tense, agit, (10-calm), onedge, uneasy, (10-relax)))$total$raw_alpha, digits=2)`  
+
+
+## (3) Random assignment checks
+
+**(a) Unequal variance test, *t*-test, and *M*s and *SD*s for: SAS-REG-1**
+```{r echo=FALSE}
+var.test(rf1~cond)
+t.test(rf1~cond, var.equal=FALSE)
+describeBy(rf1, cond)
+```
+
+**(b) Unequal variance test, *t*-test, and *M*s and *SD*s for: SAS-REG-2**
+```{r echo=FALSE}
+var.test(rf2~cond)
+t.test(rf2~cond, var.equal=TRUE)
+describeBy(rf2, cond)
+```
+
+
+## (4) Primary Analyses
+
+### Explicit promotion motives
+
+**Step 1:**
+```{r echo=FALSE}
+summary(pro.motives.main <- lm(pro.motives ~ cond_c + rf1_c + rf2_c))
+```
+
+**Step 1 *CI*s:**
+```{r echo=FALSE}
+round(confint(pro.motives.main, level = 0.95), digits = 2)
+```
+
+**Step 2:**
+```{r echo=FALSE}
+summary(pro.motives.regress <- lm(pro.motives ~ cond_c * rf1_c + cond_c * rf2_c))
+```
+
+**Step 2 *CI*s:**
+```{r echo=FALSE}
+round(confint(pro.motives.regress, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf1:** `r round((summary(pro.motives.regress)$r.squared-summary(lm(pro.motives ~ cond_c + rf1_c + cond_c * rf2_c))$r.squared)/(1-summary(pro.motives.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for interaction term with rf2:** `r round((summary(pro.motives.regress)$r.squared-summary(lm(pro.motives ~ cond_c * rf1_c + cond_c + rf2_c))$r.squared)/(1-summary(pro.motives.regress)$r.squared), digits=3)`
+
+
+### Explicit prevention motives
+
+**Step 1:**
+```{r echo=FALSE}
+summary(pre.motives.main <- lm(pre.motives ~ cond_c + rf1_c + rf2_c))
+```
+
+**Step 1 *CI*s:**
+```{r echo=FALSE}
+round(confint(pre.motives.main, level = 0.95), digits = 2)
+```
+
+**Step 2:**
+```{r echo=FALSE}
+summary(pre.motives.regress <- lm(pre.motives ~ cond_c * rf1_c + cond_c * rf2_c))
+```
+
+**Step 2 *CI*s:**
+```{r echo=FALSE}
+round(confint(pre.motives.regress, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf1:** `r round((summary(pre.motives.regress)$r.squared-summary(lm(pre.motives ~ cond_c + rf1_c + cond_c * rf2_c))$r.squared)/(1-summary(pre.motives.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for interaction term with rf2:** `r round((summary(pre.motives.regress)$r.squared-summary(lm(pre.motives ~ cond_c * rf1_c + cond_c + rf2_c))$r.squared)/(1-summary(pre.motives.regress)$r.squared), digits=3)`
+
+
+### Preferred strategies (promotion-focused)
+
+**Step 1:**
+```{r echo=FALSE}
+summary(pro.strat.main <- lm(pro.strat ~ cond_c + rf1_c + rf2_c))
+```
+
+**Step 1 *CI*s:**
+```{r echo=FALSE}
+round(confint(pro.strat.main, level = 0.95), digits = 2)
+```
+
+**Step 2:**
+```{r echo=FALSE}
+summary(pro.strat.regress <- lm(pro.strat ~ cond_c * rf1_c + cond_c * rf2_c))
+```
+
+**Step 2 *CI*s:**
+```{r echo=FALSE}
+round(confint(pro.strat.regress, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf1:** `r round((summary(pro.strat.regress)$r.squared-summary(lm(pro.strat ~ cond_c + rf1_c + cond_c * rf2_c))$r.squared)/(1-summary(pro.strat.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf2:** `r round((summary(pro.strat.regress)$r.squared-summary(lm(pro.strat ~ cond_c * rf1_c + cond_c + rf2_c))$r.squared)/(1-summary(pro.strat.regress)$r.squared), digits=3)`
+
+
+### Preferred strategies (prevention-focused)
+
+**Step 1:**
+```{r echo=FALSE}
+summary(pre.strat.main <- lm(pre.strat ~ cond_c + rf1_c + rf2_c))
+```
+
+**Step 1 *CI*s:**
+```{r echo=FALSE}
+round(confint(pre.strat.main, level = 0.95), digits = 2)
+```
+
+**Step 2:**
+```{r echo=FALSE}
+summary(pre.strat.regress <- lm(pre.strat ~ cond_c * rf1_c + cond_c * rf2_c))
+```
+
+**Step 2 *CI*s:**
+```{r echo=FALSE}
+round(confint(pre.strat.regress, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf1:** `r (summary(pre.strat.regress)$r.squared-summary(lm(pre.strat ~ cond_c + rf1_c + cond_c * rf2_c))$r.squared)/(1-summary(pre.strat.regress)$r.squared)`  
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf2:** `r round((summary(pre.strat.regress)$r.squared-summary(lm(pre.strat ~ cond_c * rf1_c + cond_c + rf2_c))$r.squared)/(1-summary(pre.strat.regress)$r.squared), digits=3)`
+
+
+### Abstractness of preferred strategies
+
+**Step 1:**
+```{r echo=FALSE}
+summary(abstract.strat.main <- lm(abstract.strat ~ cond_c + rf1_c + rf2_c))
+```
+
+**Step 1 *CI*s:**
+```{r echo=FALSE}
+round(confint(abstract.strat.main, level = 0.95), digits = 2)
+```
+
+**Step 2:**
+```{r echo=FALSE}
+summary(abstract.strat.regress <- lm(abstract.strat ~ cond_c * rf1_c + cond_c * rf2_c))
+```
+
+**Step 2 *CI*s:**
+```{r echo=FALSE}
+round(confint(abstract.strat.regress, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf1:** `r round((summary(abstract.strat.regress)$r.squared-summary(lm(abstract.strat ~ cond_c + rf1_c + cond_c * rf2_c))$r.squared)/(1-summary(abstract.strat.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf2:** `r round((summary(abstract.strat.regress)$r.squared-summary(lm(abstract.strat ~ cond_c * rf1_c + cond_c + rf2_c))$r.squared)/(1-summary(abstract.strat.regress)$r.squared), digits=3)`
+
+
+### Promotion-relevant emotional responses
+
+**Step 1:**
+```{r echo=FALSE}
+summary(pro.emo.main <- lm(pro.emo ~ cond_c + rf1_c + rf2_c))
+```
+
+**Step 1 *CI*s:**
+```{r echo=FALSE}
+round(confint(pro.emo.main, level = 0.95), digits = 2)
+```
+
+**Step 2:**
+```{r echo=FALSE}
+summary(pro.emo.regress <- lm(pro.emo ~ cond_c * rf1_c + cond_c * rf2_c))
+```
+
+**Step 2 *CI*s:**
+```{r echo=FALSE}
+round(confint(pro.emo.regress, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf1:** `r round((summary(pro.emo.regress)$r.squared-summary(lm(pro.emo ~ cond_c + rf1_c + cond_c * rf2_c))$r.squared)/(1-summary(pro.emo.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf2:** `r round((summary(pro.motives.regress)$r.squared-summary(lm(pro.emo ~ cond_c * rf1_c + cond_c + rf2_c))$r.squared)/(1-summary(pro.motives.regress)$r.squared), digits=3)`
+
+
+### Prevention-relevant emotional responses
+
+**Step 1:**
+```{r echo=FALSE}
+summary(pre.emo.main <- lm(pre.emo ~ cond_c + rf1_c + rf2_c))
+```
+
+**Step 1 *CI*s:**
+```{r echo=FALSE}
+round(confint(pre.emo.main, level = 0.95), digits = 2)
+```
+
+**Step 2:**
+```{r echo=FALSE}
+summary(pre.emo.regress <- lm(pre.emo ~ cond_c * rf1_c + cond_c * rf2_c))
+```
+
+**Step 2 *CI*s:**
+```{r echo=FALSE}
+round(confint(pre.emo.regress, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf1:** `r round((summary(pre.emo.regress)$r.squared-summary(lm(pre.emo ~ cond_c + rf1_c + cond_c * rf2_c))$r.squared)/(1-summary(pre.emo.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf2:** `r round((summary(pre.motives.regress)$r.squared-summary(lm(pre.emo ~ cond_c * rf1_c + cond_c + rf2_c))$r.squared)/(1-summary(pre.motives.regress)$r.squared), digits=4)`
+
+
+### Counterfactual thinking
+
+**Step 1:**
+```{r echo=FALSE}
+summary(pro.counter.main <- lm(pro.counter ~ cond_c + rf1_c + rf2_c))
+```
+
+**Step 1 *CI*s:**
+```{r echo=FALSE}
+round(confint(pro.counter.main, level = 0.95), digits = 2)
+```
+
+**Step 2:**
+```{r echo=FALSE}
+summary(pro.counter.regress <- lm(pro.counter ~ cond_c * rf1_c + cond_c * rf2_c))
+```
+
+**Step 2 *CI*s:**
+```{r echo=FALSE}
+round(confint(pro.counter.regress, level = 0.95), digits = 2)
+```
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf1:** `r round((summary(pro.counter.regress)$r.squared-summary(lm(pro.counter ~ cond_c + rf1_c + cond_c * rf2_c))$r.squared)/(1-summary(pro.counter.regress)$r.squared), digits=3)`  
+
+***f*<sup>2</sup> value (effect size) for the interaction term with rf2:** `r round((summary(pro.counter.regress)$r.squared-summary(lm(pro.counter ~ cond_c * rf1_c + cond_c + rf2_c))$r.squared)/(1-summary(pro.counter.regress)$r.squared), digits=4)`
+
+
+```{r echo=FALSE}
+## scripts for producing tables
+regtable <- function(modellist, docname) {
+  sections <- list(NA)
+  colnam <- vector("list", length(modellist)*4)
+  for (i in 1:length(modellist)) {
+    assign(paste("b", i, sep = ""), round(coef(summary(modellist[[i]])), digits=3))
+    assign(paste("ci", i, sep = ""), paste(round(get(paste("b", i, sep=""))[, 1], digits=2), " [", round(confint(modellist[[i]], level = 0.95)[,1], digits=2), ", ", round(confint(modellist[[i]], level = 0.95)[,2], digits=2), "]", sep = ""))
+    assign(paste("t", i, sep = ""), round(summary(modellist[[i]])$coefficients[,3], digits=2))
+    assign(paste("df", i, sep = ""), rep(summary(modellist[[i]])$df[2],each=1+length(labels(modellist[[1]]))))
+    assign(paste("p", i, sep = ""), round(summary(modellist[[i]])$coefficients[,4], digits=3))
+    assign(paste("section", i, sep = ""), rbind(cbind(get(paste("ci", i, sep = "")), get(paste("t", i, sep = "")), get(paste("df", i, sep = "")), get(paste("p", i, sep = "")))))
+    sections[[i]] <- get(paste("section", i, sep = ""))
+    colnam[1+(4*(i-1))] <- paste(all.vars(summary(modellist[[i]])$call)[1], ": b (95% CIs)", sep="")
+    colnam[2+(4*(i-1))] <- "t"
+    colnam[3+(4*(i-1))] <- "df"
+    colnam[4+(4*(i-1))] <- "p"
+  }
+  complete <- do.call(cbind, sections)
+  colnames(complete) <- colnam
+  rnames <- c("Intercept")
+  for (j in 1:length(labels(modellist[[1]]))) {
+    rnames <- append(rnames, labels(modellist[[1]])[j])
+  }
+  rownames(complete) <- rnames
+  complete <- complete[-1,]
+  rtffile <- RTF(file=paste(docname, ".doc", sep=""), width=11, height=8.5, font.size=8)  # this can be an .rtf or a .doc
+  addTable(rtffile, cbind(rownames(complete), complete), col.justify="C", header.col.justify="C")
+  done(rtffile)
+}
+models1 <- list(pro.motives.main, pre.motives.main, pro.strat.main, pre.strat.main, abstract.strat.main, pro.emo.main, pre.emo.main, pro.counter.main)
+regtable(models1, "Table 5 Step 1")
+models2 <- list(pro.motives.regress, pre.motives.regress, pro.strat.regress, pre.strat.regress, abstract.strat.regress, pro.emo.regress, pre.emo.regress, pro.counter.regress)
+regtable(models2, "Table 5 Step 2")
+```

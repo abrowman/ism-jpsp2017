@@ -1,0 +1,196 @@
+---
+title: "Pilot Test of Study 1 DV"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    theme: default
+---
+
+## (1) Description of Data
+
+The posted data for this study consists of 1 compiled, deidentified data file.
+
+```{r include=FALSE}
+options(width=100)
+
+library(RCurl)
+library(data.table)
+library(psych)
+cohend <- function(var1, var2) {round((describe(var1)$"mean" - describe(var2)$"mean")/(sqrt((describe(var1)$"sd"^2+describe(var2)$"sd"^2)/2)), digits=2)}
+
+
+## DATA PREPARATION ##
+csv <- getURL("https://raw.githubusercontent.com/abrowman/ism-jpsp2017/master/Supplementary%20Studies/Pilot%20Test%20of%20Study%201%20DV/ISM_PilotStudy.csv")
+mydata <- read.csv(textConnection(csv))
+attach(mydata)
+
+pro.pro <- (pro1.pro+pro2.pro+pro3.pro+pro4.pro+pro5.pro)/5
+pro.pre <- (pro1.pre+pro2.pre+pro3.pre+pro4.pre+pro5.pre)/5
+pre.pro <- (pre1.pro+pre2.pro+pre3.pro+pre4.pro+pre5.pro)/5
+pre.pre <- (pre1.pre+pre2.pre+pre3.pre+pre4.pre+pre5.pre)/5
+```
+
+
+## (2) Descriptive Statistics
+
+**Total *N*:** `r nrow(mydata)`
+
+**Percentage by gender:**
+```{r echo=FALSE}
+Gender <- factor(ifelse(gender==1, "male", ifelse(gender==2, "female", NA)))
+table(Gender, useNA="always")
+```
+
+***M*s and *SD*s:**
+```{r echo=FALSE}
+describe(data.frame(pro.pro, pro.pre, pre.pro, pre.pre))[c(2,3,4)]
+```
+
+**Alphas:**  
+
+  * **Promotion-focus of independent items:** `r round(alpha(data.frame(pro1.pro, pro2.pro, pro3.pro, pro4.pro, pro5.pro))$total$raw_alpha, digits=2)`  
+  * **Prevention-focus of independent items:** `r round(alpha(data.frame(pro1.pre, pro2.pre, pro3.pre, pro4.pre, pro5.pre))$total$raw_alpha, digits=2)`  
+  * **Promotion-focus of interdependent items:** `r round(alpha(data.frame(pre1.pro, pre2.pro, pre3.pro, pre4.pro, pre5.pro))$total$raw_alpha, digits=2)`  
+  * **Prevention-focus of interdependent items:** `r round(alpha(data.frame(pre1.pre, pre2.pre, pre3.pre, pre4.pre, pre5.pre))$total$raw_alpha, digits=2)`
+
+
+## (3) Primary Analyses
+
+### Difference in promotion- vs. prevention focus of promotion items
+```{r echo=FALSE}
+var.test(pro.pro, pro.pre, paired=TRUE)
+t.test(pro.pro, pro.pre, paired=TRUE, var.equal=FALSE)
+```
+
+**Cohen's *d*:** `r round((describe(pro.pro)$"mean" - describe(pro.pre)$"mean")/(sqrt((describe(pro.pro)$"sd"^2+describe(pro.pre)$"sd"^2)/2)), digits=2)`
+
+
+### Difference in promotion-focus of promotion items and prevention items
+```{r echo=FALSE}
+var.test(pro.pro, pre.pro, paired=TRUE)
+t.test(pro.pro, pre.pro, paired=TRUE, var.equal=FALSE)
+```
+
+**Cohen's *d*:** `r round((describe(pro.pro)$"mean" - describe(pre.pro)$"mean")/(sqrt((describe(pro.pro)$"sd"^2+describe(pre.pro)$"sd"^2)/2)), digits=2)`
+
+
+### Difference in prevention- vs. promotion focus of prevention items
+```{r echo=FALSE}
+var.test(pre.pre, pre.pro, paired=TRUE)
+t.test(pre.pre, pre.pro, paired=TRUE, var.equal=TRUE)
+```
+
+**Cohen's *d*:** `r round((describe(pre.pre)$"mean" - describe(pre.pro)$"mean")/(sqrt((describe(pre.pre)$"sd"^2+describe(pre.pro)$"sd"^2)/2)), digits=2)`
+
+
+### Difference in prevention-focus of promotion items and prevention items
+```{r echo=FALSE}
+var.test(pre.pre, pro.pre, paired=TRUE)
+t.test(pre.pre, pro.pre, paired=TRUE, var.equal=FALSE)
+```
+
+**Cohen's *d*:** `r round((describe(pre.pre)$"mean" - describe(pro.pre)$"mean")/(sqrt((describe(pre.pre)$"sd"^2+describe(pro.pre)$"sd"^2)/2)), digits=2)`
+
+
+### Individual item analyses
+
+#### Explore new interests (promotion)
+```{r echo=FALSE}
+var.test(pro1.pro, pro1.pre)
+t.test(pro1.pro, pro1.pre, paired=T, var.equal=F)
+describe(data.frame(pro1.pro, pro1.pre))[,c(2,3,4)]
+```
+
+**Cohen's *D*:** `r cohend(pro1.pro, pro1.pre)`
+
+
+#### Expand my knowledge of the world (promotion)
+```{r echo=FALSE}
+var.test(pro2.pro, pro2.pre)
+t.test(pro2.pro, pro2.pre, paired=T, var.equal=F)
+describe(data.frame(pro2.pro, pro2.pre))[,c(2,3,4)]
+```
+
+**Cohen's *D*:** `r cohend(pro2.pro, pro2.pre)`
+
+
+#### Learn more about my interests (promotion)
+```{r echo=FALSE}
+var.test(pro3.pro, pro3.pre)
+t.test(pro3.pro, pro3.pre, paired=T, var.equal=F)
+describe(data.frame(pro3.pro, pro3.pre))[,c(2,3,4)]
+```
+
+**Cohen's *D*:** `r cohend(pro3.pro, pro3.pre)`
+
+
+#### Expand my understanding of the world (promotion)
+```{r echo=FALSE}
+var.test(pro4.pro, pro4.pre)
+t.test(pro4.pro, pro4.pre, paired=T, var.equal=F)
+describe(data.frame(pro4.pro, pro4.pre))[,c(2,3,4)]
+```
+
+**Cohen's *D*:** `r cohend(pro4.pro, pro4.pre)`
+
+
+#### Become an independent thinker (promotion)
+```{r echo=FALSE}
+var.test(pro5.pro, pro5.pre)
+t.test(pro5.pro, pro5.pre, paired=T, var.equal=F)
+describe(data.frame(pro5.pro, pro5.pre))[,c(2,3,4)]
+```
+
+Cohen's *D*: `r cohend(pro5.pro, pro5.pre)`
+
+
+#### Help out my family after I’m done with college (prevention)
+```{r echo=FALSE}
+var.test(pre1.pro, pre1.pre)
+t.test(pre1.pro, pre1.pre, paired=T, var.equal=T)
+describe(data.frame(pre1.pro, pre1.pre))[,c(2,3,4)]
+```
+
+Cohen's *D*: `r cohend(pre1.pro, pre1.pre)`
+
+
+#### Support myself financially (prevention)
+```{r echo=FALSE}
+var.test(pre2.pro, pre2.pre)
+t.test(pre2.pro, pre2.pre, paired=T, var.equal=F)
+describe(data.frame(pre2.pro, pre2.pre))[,c(2,3,4)]
+```
+
+**Cohen's *D*:** `r cohend(pre2.pro, pre2.pre)`
+
+
+#### Be a role model for people in my community (prevention)
+```{r echo=FALSE}
+var.test(pre3.pro, pre3.pre)
+t.test(pre3.pro, pre3.pre, paired=T, var.equal=T)
+describe(data.frame(pre3.pro, pre3.pre))[,c(2,3,4)]
+```
+
+**Cohen's *D*:** `r cohend(pre3.pro, pre3.pre)`
+
+
+#### Bring honor to my family (prevention)
+```{r echo=FALSE}
+var.test(pre4.pro, pre4.pre)
+t.test(pre4.pro, pre4.pre, paired=T, var.equal=T)
+describe(data.frame(pre4.pro, pre4.pre))[,c(2,3,4)]
+```
+
+**Cohen's *D*:** `r cohend(pre4.pro, pre4.pre)`
+
+
+#### Give back to my community (prevention)
+```{r echo=FALSE}
+var.test(pre5.pro, pre5.pre)
+t.test(pre5.pro, pre5.pre, paired=T, var.equal=T)
+describe(data.frame(pre5.pro, pre5.pre))[,c(2,3,4)]
+```
+
+**Cohen's *D*:** `r cohend(pre5.pro, pre5.pre)`
