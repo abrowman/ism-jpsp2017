@@ -6,6 +6,7 @@ Research on self-regulation has traditionally emphasized that people’s thought
 
 ## Links
 
+* [Official article link](http://psycnet.apa.org/record/2017-52741-001)
 * [Pre-print PDF](http://alexbrowman.com/articles/Browman%20et%20al.,%202017,%20JPSP.pdf)
 
 ## Citation
