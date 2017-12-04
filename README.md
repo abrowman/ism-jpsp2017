@@ -11,4 +11,4 @@ Research on self-regulation has traditionally emphasized that people’s thought
 
 ## Citation
 
-> Browman, A. S., Destin, M., & Molden, D. C. (in press). Identity-Specific Motivation: How Distinct Identities Direct the Pursuit of Distinct Goals. *Journal of Personality and Social Psychology.* doi: 10.1037/pspa0000095.
+> Browman, A. S., Destin, M., & Molden, D. C. (in press). Identity-Specific Motivation: How Distinct Identities Direct Self-Regulation across Distinct Situations. *Journal of Personality and Social Psychology.* doi: 10.1037/pspa0000095.
